@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Element Shot - Complex Fixture</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: #22251f;
+        background: #e8e9df;
+        font-family: "Avenir Next", sans-serif;
+      }
+      main { width: 860px; margin: 0 auto; padding: 42px 0; }
+      nav { margin-bottom: 16px; font: 700 13px/1.2 sans-serif; }
+      nav a { color: #293763; }
+      h1 { margin: 0 0 18px; font-size: 26px; letter-spacing: 0; }
+      .overflow-shell {
+        width: 610px;
+        height: 330px;
+        overflow: hidden;
+        border: 3px solid #242820;
+        background: #f7f7f1;
+      }
+      .flex-shell {
+        display: flex;
+        width: 680px;
+        height: 390px;
+        align-items: flex-start;
+        gap: 20px;
+        padding: 28px;
+      }
+      .rail { width: 80px; height: 260px; background: #fb5a3c; }
+      .scale-shell {
+        width: 470px;
+        transform: scale(0.8);
+        transform-origin: top left;
+      }
+      #complex-target {
+        width: 430px;
+        height: 300px;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        background: #fff;
+      }
+      .entry {
+        display: grid;
+        height: 75px;
+        grid-template-columns: 62px 1fr;
+        align-items: center;
+        padding: 0 20px;
+        border-bottom: 1px solid #242820;
+      }
+      .entry:nth-child(odd) { background: #d7e9d5; }
+      .entry:nth-child(even) { background: #ffe094; }
+      .index { font: 800 13px/1 monospace; }
+      .entry span:last-child { font-weight: 700; }
+      #sticky-obstruction {
+        position: sticky;
+        z-index: 20;
+        top: 0;
+        width: 190px;
+        margin-left: 100px;
+        padding: 9px 12px;
+        color: white;
+        background: #293763;
+        font: 700 12px/1.2 monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="sticky-obstruction">UNRELATED STICKY</div>
+    <main>
+      <nav><a href="./test-simple.html">返回简单测试场景</a></nav>
+      <h1>Transformed nested container</h1>
+      <div class="overflow-shell">
+        <div class="flex-shell">
+          <div class="rail"></div>
+          <div class="scale-shell">
+            <section id="complex-target" aria-label="Complex screenshot target">
+              <div class="entry"><span class="index">01</span><span>Alpha record</span></div>
+              <div class="entry"><span class="index">02</span><span>Bravo record</span></div>
+              <div class="entry"><span class="index">03</span><span>Charlie record</span></div>
+              <div class="entry"><span class="index">04</span><span>Delta record</span></div>
+              <div class="entry"><span class="index">05</span><span>Echo record</span></div>
+              <div class="entry"><span class="index">06</span><span>Foxtrot record</span></div>
+              <div class="entry"><span class="index">07</span><span>Golf record</span></div>
+              <div class="entry"><span class="index">08</span><span>Hotel record</span></div>
+              <div class="entry"><span class="index">09</span><span>India record</span></div>
+              <div class="entry"><span class="index">10</span><span>Juliet record</span></div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

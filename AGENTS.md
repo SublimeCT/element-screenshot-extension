@@ -15,6 +15,7 @@
 - **权限最小化**：新增任何 `permissions` / `host_permissions` 前，先确认 SPEC.md §6.1 是否已列出；如需新增未列出的权限，必须在代码注释和 commit message 中说明具体用途，避免"以防万一"式的权限申请（这会直接影响商店审核通过率）。
 - **禁止引入远程脚本/远程配置执行逻辑**：所有截图、拼接、下载逻辑必须在扩展包内完成，不得 `fetch` 远程 JS 并 `eval`/动态执行（这是 Chrome Web Store 审核的高频拒绝原因）。此规则同样适用于 npm 依赖——新增任何依赖前，先确认它不会在运行时拉取远程可执行代码。
 - **禁止上传任何页面数据到远程服务器**：整个项目不应出现任何 `fetch`/`XMLHttpRequest` 指向第三方域名的截图/内容上传逻辑。如果测试阶段需要日志或错误上报，仅允许输出到 `console`，不得远程上报。
+- **禁止提交特定网页的真实业务地址或标识符**：站点适配器、文档和测试中不得出现实际项目路径、查询参数、画布 ID、元素 ID 等业务信息；只允许使用经过确认可公开的产品基础地址。
 - **`chrome.tabs.captureVisibleTab` 只能在 `entrypoints/background.ts`（service worker）中调用**，content script 侧一律通过 `chrome.runtime.sendMessage` 请求，不要尝试绕过这个边界。
 - **裁剪坐标计算必须使用物理像素**（`getBoundingClientRect()` 值 × `devicePixelRatio`），任何涉及坐标计算的代码变更，需要在注释里写明当前用的是 CSS 像素还是物理像素，避免后续维护者搞混（这是本项目历史上最容易出 bug 的地方）。建议在 `lib/types.ts` 里用类型区分两种像素单位（例如 `CssPixels` / `DevicePixels` 的 branded type），从类型层面减少混用风险。
 - **任何对页面 DOM/CSS 的临时修改（如隐藏 fixed 元素、修改 scrollTop）必须保证可还原**，用 `try/finally` 或等价机制确保即使中途报错也会执行还原逻辑。写这类代码时，先写还原逻辑，再写修改逻辑。
@@ -38,18 +39,18 @@
 - [ ] 涉及坐标/尺寸计算的代码，是否明确区分了 CSS 像素与物理像素？
 - [ ] `pnpm dev` 启动后，是否在实际 Chrome 中加载测试过（而不是只做静态代码检查 / `tsc` 通过）？
 - [ ] Service worker（`entrypoints/background.ts`）相关代码是否考虑了它可能被 Chrome 随时回收、重新唤醒的情况？
-- [ ] `pnpm build` 生成的 `.output/` 产物中,manifest 权限清单是否与预期一致（可直接打开生成的 `manifest.json` 核对，虽然源码里不手写它，但要核对生成结果）？
+- [ ] `pnpm build` 生成的 `dist/` 产物中,manifest 权限清单是否与预期一致（可直接打开生成的 `manifest.json` 核对，虽然源码里不手写它，但要核对生成结果）？
 
 ## 5. 测试策略
 
-项目暂不引入端到端自动化测试框架（截图类插件的核心价值依赖真实浏览器渲染，单元测试收益有限）。`lib/capture.ts`、`lib/stitch.ts` 中的纯逻辑部分（坐标计算、裁剪框拼接等不直接依赖 DOM 事件的函数）如果任务中要求，可以补充 Vitest 单元测试，但涉及真实滚动/截图效果的验证，仍以下面的手动流程为准：
+项目使用 Playwright 在真实 Chromium 中验证扩展加载、消息通信、滚动截图、拼接和下载。`lib/capture.ts`、`lib/stitch.ts` 中的纯逻辑部分仍可按需补充 Vitest 单元测试；涉及浏览器工具栏授予 `activeTab` 的交互继续保留手动验收：
 
-1. 使用 `pnpm dev` 启动开发模式，WXT 会自动拉起 Chrome 并加载扩展，改动后自动热更新，不需要手动去 `chrome://extensions` 点重新加载。
-2. 准备至少 3 个测试页面（放在 `test-pages/` 目录下，作为本地静态 HTML，方便复现）：
-   - 简单场景：一个 `overflow:auto` 的 `<div>`，内容为纯文本，无嵌套滚动祖先
-   - 复杂场景：目标元素套在多层祖先中，祖先分别包含 `transform: scale(0.8)`、`display:flex`、`overflow:hidden` 等干扰样式（复现本项目最初讨论中提到的痛点）
+1. 使用 `pnpm dev` 启动开发模式，WXT 会自动拉起 Chrome、加载扩展并打开简单测试页，改动后自动热更新，不需要手动去 `chrome://extensions` 点重新加载。
+2. 测试页使用 WXT 的 unlisted page 入口约定，不启动独立 HTTP 服务器、不占用固定端口；`wxt.config.ts` 必须确保它们仅进入 `development` / `e2e` 构建：
+   - `entrypoints/test-simple/`：一个 `overflow:auto` 的 `<div>`，内容为纯文本，无嵌套滚动祖先
+   - `entrypoints/test-complex/`：目标元素套在多层祖先中，祖先分别包含 `transform: scale(0.8)`、`display:flex`、`overflow:hidden` 等干扰样式
    - 高分屏场景：无需单独 HTML，用同一页面在系统层面切换/模拟 `devicePixelRatio`（Chrome DevTools 可以模拟设备像素比）测试
-3. 每次修改后，对这三个场景分别执行一次完整截图流程，人工核对：
+3. 每次修改后，对上述场景分别执行一次完整截图流程，人工核对：
    - 拼接图是否与手动滚动到底、逐屏截图的结果内容一致（无重复行、无缺失行）
    - 高分屏下图片是否清晰
    - 截图结束后原页面是否完全恢复（滚动位置、被临时隐藏的元素）

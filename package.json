@@ -1,20 +1,23 @@
 {
-  "name": "wxt-starter",
-  "description": "manifest.json description",
+  "name": "element-full-screenshot",
+  "description": "Capture the complete content of a selected scrollable element.",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",
     "build": "wxt build",
+    "build:e2e": "wxt build --mode e2e",
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
+    "test:e2e": "pnpm build:e2e && playwright test",
     "postinstall": "wxt prepare"
   },
   "devDependencies": {
+    "@playwright/test": "1.58.2",
     "typescript": "^5.9.3",
     "wxt": "^0.20.27"
   }
