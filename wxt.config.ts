@@ -17,11 +17,12 @@ export default defineConfig({
     },
   },
   manifest: ({ mode }) => ({
-    name: 'Element Full Screenshot',
-    description: 'Capture the complete content of a selected scrollable element.',
+    name: '__MSG_extensionName__',
+    description: '__MSG_extensionDescription__',
+    default_locale: 'zh_CN',
     permissions: ['activeTab', 'scripting'],
     action: {
-      default_title: 'Element Shot',
+      default_title: '__MSG_actionTitle__',
     },
     // Playwright cannot invoke Chrome's toolbar action to grant activeTab.
     // This permission exists only in the isolated E2E artifact so that

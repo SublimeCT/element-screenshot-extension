@@ -35,26 +35,58 @@ export interface CaptureResult {
   outputWidth: DevicePixels;
 }
 
-export interface SiteCaptureSession {
-  readonly contentHeight: CssPixels;
-  readonly viewportHeight: CssPixels;
-  applyPosition(position: CssPixels): void;
-  assertPosition(position: CssPixels): void;
-  restore(): void;
-}
-
-export interface SiteCaptureTarget {
-  readonly viewport: HTMLElement;
-  createCaptureSession(): SiteCaptureSession;
-}
-
-export interface SiteCaptureAdapter {
-  readonly name: string;
-  resolve(element: HTMLElement): SiteCaptureTarget | null;
-}
-
 export interface CaptureTabRequest {
   type: typeof MESSAGE_TYPES.CAPTURE_TAB;
+}
+
+export type CaptureMode =
+  | 'allScrollable'
+  | 'custom'
+  | 'element'
+  | 'focus'
+  | 'fullPage'
+  | 'region';
+
+export type SupportedLocale =
+  | 'ar'
+  | 'de'
+  | 'en'
+  | 'es'
+  | 'fr'
+  | 'ja'
+  | 'ko'
+  | 'pt_BR'
+  | 'zh_CN'
+  | 'zh_TW';
+
+export type LocaleChoice = 'browser' | SupportedLocale;
+
+export interface CaptureSettings {
+  intervalMs: number;
+  language: LocaleChoice;
+  preview: boolean;
+  restoreEditedContent: boolean;
+  restoreHiddenElements: boolean;
+  // Kept in the wire format for backwards compatibility; scroll restoration
+  // is always enabled by the picker regardless of this legacy field.
+  restorePage: boolean;
+  settleDelayMs: number;
+}
+
+export interface OpenPreviewRequest {
+  dataUrl: string;
+  type: typeof MESSAGE_TYPES.OPEN_PREVIEW;
+}
+
+export interface PreviewReadyRequest {
+  tabId: number;
+  type: typeof MESSAGE_TYPES.PREVIEW_READY;
+}
+
+export interface SetPreviewDataRequest {
+  dataUrl: string;
+  tabId: number;
+  type: typeof MESSAGE_TYPES.SET_PREVIEW_DATA;
 }
 
 export interface ContentPingRequest {
@@ -62,16 +94,23 @@ export interface ContentPingRequest {
 }
 
 export interface StartPickCommand {
+  mode: CaptureMode;
+  settings: CaptureSettings;
   type: typeof MESSAGE_TYPES.START_PICK;
 }
 
 export interface StartPickRequest {
+  mode: CaptureMode;
+  settings: CaptureSettings;
   type: typeof MESSAGE_TYPES.START_PICK_REQUEST;
 }
 
 export type ExtensionRequest =
   | CaptureTabRequest
   | ContentPingRequest
+  | OpenPreviewRequest
+  | PreviewReadyRequest
+  | SetPreviewDataRequest
   | StartPickCommand
   | StartPickRequest;
 

@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screenshot Suite · 全能网页截图套件</title>
+<meta name="description" content="区域 / 整页 / 自定义 / 全部滚动元素四种截图模式，本地滚动拼接，高分屏清晰，数据从不离开你的电脑。">
+
+<!-- Favicon: SVG (modern), PNG (32), Apple Touch (180), classic ICO -->
+<link rel="icon" type="image/svg+xml" href="../icon/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="../icon/32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="../icon/48.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../icon/16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" href="favicon.ico">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:oklch(98.2% 0.005 95); --surface:oklch(100% 0 0); --surface-2:oklch(97% 0.006 95);
+  --fg:oklch(23% 0.012 75); --muted:oklch(52% 0.012 75); --faint:oklch(68% 0.01 75);
+  --border:oklch(91% 0.006 75); --border-strong:oklch(84% 0.008 75);
+  --accent:oklch(64% 0.19 38); --accent-ink:oklch(50% 0.16 34); --accent-soft:oklch(95.5% 0.028 40);
+  --success:oklch(60% 0.14 152); --success-soft:oklch(95% 0.03 155);
+  --warn:oklch(80% 0.14 75); --info:oklch(58% 0.09 235);
+  --font-display:'Sora',ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --font-body:'Plus Jakarta Sans',ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:22px; --r-pill:999px;
+  --sh-sm:0 1px 2px oklch(23% 0.012 75/.07),0 1px 3px oklch(23% 0.012 75/.05);
+  --sh-md:0 6px 14px oklch(23% 0.012 75/.09),0 2px 4px oklch(23% 0.012 75/.05);
+  --sh-lg:0 22px 48px oklch(23% 0.012 75/.14),0 8px 16px oklch(23% 0.012 75/.07);
+  --sh-accent:0 12px 26px oklch(64% 0.19 38/.32);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{font-family:var(--font-body);color:var(--fg);background:var(--bg);-webkit-font-smoothing:antialiased}
+body{margin:0;line-height:1.5}
+h1,h2,h3{font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;line-height:1.08;margin:0}
+.eyebrow{font-family:var(--font-mono);font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink)}
+.lead{color:var(--muted);line-height:1.6}
+.mono{font-family:var(--font-mono)}
+a{color:inherit}
+
+/* brand */
+.brand{position:relative;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:12px;background:linear-gradient(150deg,var(--surface),var(--surface-2));box-shadow:var(--sh-sm);border:1px solid var(--border);flex:0 0 auto}
+.brand i{position:absolute;width:9px;height:9px;border:2.5px solid var(--accent)}
+.brand i:nth-child(1){top:8px;left:8px;border-right:0;border-bottom:0;border-radius:3px 0 0 0}
+.brand i:nth-child(2){top:8px;right:8px;border-left:0;border-bottom:0;border-radius:0 3px 0 0}
+.brand i:nth-child(3){bottom:8px;left:8px;border-right:0;border-top:0;border-radius:0 0 0 3px}
+.brand i:nth-child(4){bottom:8px;right:8px;border-left:0;border-top:0;border-radius:0 0 3px 0}
+.brand.brand-lg{width:56px;height:56px;border-radius:16px} .brand.brand-lg i{width:13px;height:13px} .brand.brand-lg i:nth-child(1){top:11px;left:11px} .brand.brand-lg i:nth-child(2){top:11px;right:11px} .brand.brand-lg i:nth-child(3){bottom:11px;left:11px} .brand.brand-lg i:nth-child(4){bottom:11px;right:11px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-body);font-weight:600;font-size:14px;letter-spacing:.01em;border-radius:var(--r-md);padding:11px 18px;cursor:pointer;border:1px solid transparent;transition:transform .12s ease,box-shadow .14s ease,background .14s ease,color .14s ease;text-decoration:none}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:var(--sh-accent)} .btn-primary:hover{transform:translateY(-1px)} .btn-primary:active{transform:translateY(1px) scale(.99)}
+.btn-ghost{background:var(--surface);color:var(--fg);border-color:var(--border)} .btn-ghost:hover{border-color:var(--border-strong);background:var(--surface-2)}
+.btn-soft{background:var(--accent-soft);color:var(--accent-ink)} .btn-soft:hover{background:oklch(94% 0.04 40)}
+.btn-sm{padding:7px 12px;font-size:12.5px;border-radius:10px}
+.btn-block{width:100%}
+.btn:focus-visible{outline:3px solid oklch(64% 0.19 38/.4);outline-offset:2px}
+
+/* kbd */
+.kbd{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:6px;border:1px solid var(--border-strong);border-bottom-width:2px;background:var(--surface);color:var(--muted);font:600 11px/1 var(--font-mono);vertical-align:middle}
+
+/* chips / cards */
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--muted)}
+.chip-ok{background:var(--success-soft);border-color:oklch(88% 0.05 152);color:oklch(40% 0.12 152)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--sh-sm)}
+.hairline{height:1px;background:var(--border);border:0}
+
+/* icon */
+.icon{width:22px;height:22px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+
+/* layout */
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+section{padding:96px 0}
+@media (max-width:720px){section{padding:64px 0}}
+
+/* ===== NAV ===== */
+.nav{position:sticky;top:0;z-index:50;background:oklch(98.2% 0.005 95/.82);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border-bottom:1px solid var(--border)}
+.nav-inner{max-width:1120px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;gap:20px}
+.nav-brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;letter-spacing:-.01em;font-size:15.5px}
+.nav-links{display:flex;align-items:center;gap:6px;margin-left:8px}
+.nav-links a{font-size:14px;font-weight:500;color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:8px;transition:color .14s,background .14s}
+.nav-links a:hover{color:var(--fg);background:var(--surface-2)}
+.nav-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
+@media (max-width:860px){.nav-links{display:none}}
+
+/* language switcher */
+.lang-switch{position:relative;display:inline-flex;align-items:center}
+.lang-globe{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--muted);pointer-events:none}
+.lang-select{appearance:none;-webkit-appearance:none;-moz-appearance:none;font-family:var(--font-body);font-weight:600;font-size:12.5px;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px 26px 7px 30px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a8580' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;background-size:12px;transition:border-color .14s ease,background .14s ease,color .14s ease}
+.lang-select:hover{border-color:var(--border-strong);background-color:var(--surface-2);color:var(--fg)}
+.lang-select:focus-visible{outline:3px solid oklch(64% 0.19 38/.4);outline-offset:2px}
+@media (max-width:560px){.lang-select{padding-right:24px}}
+
+/* ===== HERO ===== */
+.hero{padding-top:72px;padding-bottom:24px}
+.hero-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:center}
+@media (max-width:920px){.hero-grid{grid-template-columns:1fr;gap:40px}}
+.hero h1{font-size:clamp(34px,5vw,60px);margin:18px 0 18px}
+.hero .lead{max-width:60ch;font-size:clamp(15px,1.4vw,17px)}
+.hero-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.hero-meta{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:24px;color:var(--muted);font-size:13px}
+.hero-meta .dot{width:4px;height:4px;border-radius:50%;background:var(--faint)}
+
+/* ===== PRODUCT MOCK (browser frame + live scrolling capture) ===== */
+.mock{position:relative;border-radius:var(--r-lg);box-shadow:var(--sh-lg);background:var(--surface);border:1px solid var(--border);overflow:hidden}
+.mock-bar{display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--border)}
+.mock-dot{width:11px;height:11px;border-radius:50%;background:var(--border-strong)}
+.mock-dot:nth-child(2){background:oklch(86% 0.02 80)}
+.mock-url{margin-left:8px;height:24px;flex:1;border-radius:var(--r-pill);background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;padding:0 12px;font-family:var(--font-mono);font-size:11px;color:var(--faint)}
+.mock-url .lock{width:11px;height:11px;stroke:currentColor;stroke-width:1.7;fill:none}
+.mock-stage{height:300px;padding:18px;background:var(--surface-2);position:relative}
+.mock-page{height:100%;padding:14px 12px 14px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;position:relative;overflow-y:scroll;scrollbar-width:thin;scrollbar-color:var(--border-strong) var(--surface-2)}
+.mock-page::-webkit-scrollbar{width:9px}
+.mock-page::-webkit-scrollbar-track{background:var(--surface-2);border-left:1px solid var(--border)}
+.mock-page::-webkit-scrollbar-thumb{background:var(--border-strong);border:2px solid var(--surface-2);border-radius:var(--r-pill)}
+.mock-page-content{display:flex;flex-direction:column;gap:11px;padding:3px 4px 48px 0}
+.capture-status{position:absolute;left:30px;bottom:28px;z-index:3;display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:var(--r-pill);background:var(--fg);color:var(--surface);box-shadow:var(--sh-md);font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.02em}
+.capture-status .status-done{display:none}
+.capture-status.is-done{background:var(--success);color:#fff}
+.capture-status.is-done .status-live{display:none}
+.capture-status.is-done .status-done{display:inline}
+.capture-pulse{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.capture-status.is-done .capture-pulse{background:#fff;box-shadow:none}
+/* simulated page content blocks */
+.ln{height:9px;border-radius:4px;background:var(--surface-2);margin-bottom:9px}
+.ln.w70{width:70%}.ln.w50{width:50%}.ln.w90{width:90%}
+.feed-card{border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--surface);position:relative;flex:0 0 auto}
+.feed-card .ln{margin-bottom:8px}
+/* picker highlight = coral finder brackets */
+.pick{position:absolute;inset:-5px -5px -5px -5px;pointer-events:none}
+.pick i{position:absolute;width:13px;height:13px;border:2.5px solid var(--accent)}
+.pick i:nth-child(1){top:-1px;left:-1px;border-right:0;border-bottom:0;border-radius:4px 0 0 0}
+.pick i:nth-child(2){top:-1px;right:-1px;border-left:0;border-bottom:0;border-radius:0 4px 0 0}
+.pick i:nth-child(3){bottom:-1px;left:-1px;border-right:0;border-top:0;border-radius:0 0 0 4px}
+.pick i:nth-child(4){bottom:-1px;right:-1px;border-left:0;border-top:0;border-radius:0 0 4px 0}
+.pick-tag{position:absolute;top:-26px;left:-5px;font-family:var(--font-mono);font-weight:600;font-size:10.5px;color:#fff;background:var(--accent);padding:3px 7px;border-radius:5px;white-space:nowrap;box-shadow:var(--sh-sm);letter-spacing:.02em}
+.pick-tag::after{content:"";position:absolute;left:9px;bottom:-3px;width:6px;height:6px;background:var(--accent);transform:rotate(45deg)}
+
+/* ===== SIX CAPTURE MODES ===== */
+.section-head{max-width:720px;margin-bottom:44px}
+.section-head .eyebrow{display:inline-block;margin-bottom:12px}
+.section-head h2{font-size:clamp(26px,3.2vw,38px);margin-bottom:12px}
+.section-head .lead{font-size:16px}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:920px){.modes{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.modes{grid-template-columns:1fr}}
+.mode{padding:22px 20px;display:flex;flex-direction:column;gap:12px;transition:transform .14s ease,box-shadow .14s ease,border-color .14s}
+.mode:hover{transform:translateY(-2px);box-shadow:var(--sh-md);border-color:var(--border-strong)}
+.mode-ic{width:42px;height:42px;border-radius:11px;background:var(--surface-2);border:1px solid var(--border);display:grid;place-items:center;color:var(--fg)}
+.mode-ic .icon{width:22px;height:22px}
+.mode h3{font-family:var(--font-display);font-weight:600;font-size:16.5px;letter-spacing:-.01em}
+.mode p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55}
+.mode .kbd{margin:0 1px}
+
+/* ===== HOW TO (timeline) ===== */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;position:relative}
+@media (max-width:860px){.steps{grid-template-columns:1fr}}
+.step{padding:26px 22px;display:flex;flex-direction:column;gap:14px;position:relative}
+.step-num{font-family:var(--font-display);font-weight:700;font-size:40px;line-height:1;color:transparent;-webkit-text-stroke:1.6px var(--accent);letter-spacing:-.02em}
+.step-ic{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent-ink)}
+.step-ic .icon{width:19px;height:19px}
+.step h3{font-family:var(--font-display);font-weight:600;font-size:16px}
+.step p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55}
+.step .mono-sm{font-family:var(--font-mono);font-size:11.5px;color:var(--faint)}
+
+/* ===== EDIT & HIDE (tune) ===== */
+.tune-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media (max-width:720px){.tune-grid{grid-template-columns:1fr}}
+.tune-card{display:flex;align-items:flex-start;gap:14px;padding:22px 22px;transition:transform .14s ease,box-shadow .14s ease,border-color .14s}
+.tune-card:hover{transform:translateY(-2px);box-shadow:var(--sh-md);border-color:var(--border-strong)}
+.tune-ic{flex:0 0 auto;width:42px;height:42px;border-radius:11px;background:var(--accent-soft);color:var(--accent-ink);display:grid;place-items:center}
+.tune-ic .icon{width:21px;height:21px;stroke-width:1.9}
+.tune-card h3{font-family:var(--font-display);font-weight:600;font-size:16.5px;letter-spacing:-.01em;margin-bottom:6px}
+.tune-card p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55}
+
+/* ===== PRIVACY band ===== */
+.privacy{background:linear-gradient(180deg,var(--accent-soft),oklch(97% 0.006 95));border-top:1px solid oklch(90% 0.025 40);border-bottom:1px solid oklch(90% 0.025 40);position:relative;overflow:hidden}
+.privacy::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(420px 220px at 88% 0%,oklch(64% 0.19 38/.06),transparent 70%),
+  radial-gradient(360px 200px at 0% 100%,oklch(64% 0.19 38/.05),transparent 70%);pointer-events:none}
+.privacy-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:center;position:relative}
+@media (max-width:920px){.privacy-grid{grid-template-columns:1fr;gap:36px}}
+.privacy h2{font-size:clamp(28px,3.4vw,42px);margin:14px 0 16px}
+.privacy .lead{max-width:48ch;font-size:16px}
+.privacy-facts{display:flex;flex-direction:column;gap:14px}
+.pfact{display:flex;align-items:flex-start;gap:14px;padding:18px 20px;background:var(--surface);border:1px solid oklch(90% 0.02 75);border-radius:var(--r-lg);box-shadow:var(--sh-sm)}
+.pfact-ic{width:30px;height:30px;border-radius:8px;background:var(--success-soft);color:oklch(40% 0.12 152);display:grid;place-items:center;flex:0 0 auto}
+.pfact-ic .icon{width:17px;height:17px;stroke-width:2.2}
+.pfact-t{font-weight:600;font-size:14.5px;margin-bottom:2px}
+.pfact-d{font-size:12.5px;color:var(--muted);line-height:1.5}
+.pfact-d .mono{font-size:11.5px;color:var(--faint)}
+.privacy-seal{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-weight:600;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);background:var(--surface);border:1px solid oklch(88% 0.04 40);padding:6px 12px;border-radius:var(--r-pill)}
+.privacy-seal .icon{width:13px;height:13px;stroke-width:2}
+
+/* ===== FINAL CTA ===== */
+.final{text-align:center;max-width:680px;margin:0 auto}
+.final h2{font-size:clamp(30px,4vw,46px);margin-bottom:14px}
+.final .lead{margin-bottom:28px;font-size:16px}
+.final .note{margin-top:14px;font-size:12.5px;color:var(--faint)}
+
+/* ===== FOOTER ===== */
+footer{border-top:1px solid var(--border);background:var(--surface)}
+.foot-inner{max-width:1120px;margin:0 auto;padding:30px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.foot-brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:600;font-size:13.5px}
+.foot-tag{color:var(--muted);font-size:13px}
+.foot-links{margin-left:auto;display:flex;gap:22px}
+.foot-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .14s}
+.foot-links a:hover{color:var(--fg)}
+@media (max-width:620px){.foot-tag{width:100%}.foot-links{margin-left:0;width:100%}}
+
+/* reduced motion */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition:none !important;animation:none !important}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<header class="nav" data-od-id="nav">
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <span class="brand"><i></i><i></i><i></i><i></i></span>
+      <span>Screenshot Suite</span>
+    </div>
+    <nav class="nav-links" data-i18n-aria="landingNavAria" aria-label="主导航">
+      <a href="#features" data-od-id="nav-features" data-i18n="landingNavFeatures">功能</a>
+      <a href="#how" data-od-id="nav-how" data-i18n="landingNavHow">用法</a>
+      <a href="#privacy" data-od-id="nav-privacy" data-i18n="landingNavPrivacy">隐私</a>
+    </nav>
+    <div class="nav-actions">
+      <label class="lang-switch">
+        <svg class="lang-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg>
+        <select class="lang-select" data-lang-switch data-i18n-aria="language" aria-label="界面语言" data-i18n-title="language" title="界面语言">
+          <option value="browser" data-i18n="landingLangAuto">自动</option>
+          <option value="zh_CN">简体中文</option>
+          <option value="zh_TW">繁體中文</option>
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="ja">日本語</option>
+          <option value="es">Español</option>
+          <option value="ko">한국어</option>
+          <option value="de">Deutsch</option>
+          <option value="pt_BR">Português</option>
+          <option value="ar">العربية</option>
+        </select>
+      </label>
+      <a class="btn btn-ghost btn-sm" href="https://github.com/SublimeCT/element-screenshot-extension" target="_blank" rel="noreferrer" data-od-id="nav-github">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.4 9.4 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>
+        <span data-i18n="landingNavGithub">GitHub</span>
+      </a>
+      <a class="btn btn-primary btn-sm" href="#install" data-od-id="nav-install">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
+        <span data-i18n="landingInstall">添加到 Chrome</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero" data-od-id="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow" data-i18n="landingHeroEyebrow">全能网页截图套件</span>
+      <h1 data-od-id="hero-title" data-i18n="landingHeroTitle">想截哪个元素，就连滚动的隐藏内容一起截下来</h1>
+      <p class="lead" data-od-id="hero-sub" data-i18n="landingHeroSub">区域 / 整页 / 自定义 / 全部滚动元素——本地滚动拼接，高分屏清晰，数据从不离开你的电脑。</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#install" data-od-id="hero-install">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
+          <span data-i18n="landingInstall">添加到 Chrome</span>
+        </a>
+        <a class="btn btn-ghost" href="#how" data-od-id="hero-demo" hidden>
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3z"/></svg>
+          <span data-i18n="landingHeroDemo">看 30 秒演示</span>
+        </a>
+      </div>
+      <div class="hero-meta">
+        <span class="chip chip-ok">
+          <svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;stroke-width:2.4"><path d="M20 6 9 17l-5-5"/></svg>
+          <span data-i18n="landingHeroLocal">纯本地处理</span>
+        </span>
+        <span class="dot"></span>
+        <span data-i18n-html="landingHeroPerms">仅 <span class="mono">activeTab + scripting</span> 权限</span>
+        <span class="dot"></span>
+        <span data-i18n="landingHeroDpi">支持高分屏</span>
+      </div>
+    </div>
+
+    <!-- PRODUCT MOCK -->
+    <div class="mock" data-od-id="hero-mock" data-i18n-aria="landingMockAria" aria-label="产品截图示意：截图时容器自动滚动到底并完成截图">
+      <div class="mock-bar">
+        <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+        <span class="mock-url">
+          <svg class="icon lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          example.com/feed
+        </span>
+      </div>
+      <div class="mock-stage">
+        <div class="mock-page" data-od-id="hero-scroll-demo" tabindex="0" data-i18n-aria="landingScrollAria" aria-label="正在自动滚动截图的内容容器">
+          <div class="mock-page-content">
+            <div class="ln w70"></div>
+            <div class="ln w90"></div>
+            <div class="feed-card">
+              <div class="ln w50"></div><div class="ln w90"></div><div class="ln w70"></div>
+            </div>
+            <div class="feed-card">
+              <div class="ln w70"></div><div class="ln w90"></div><div class="ln w50"></div>
+            </div>
+            <div class="feed-card">
+              <div class="ln w50"></div><div class="ln w70"></div><div class="ln w90"></div>
+            </div>
+            <div class="feed-card">
+              <div class="ln w90"></div><div class="ln w50"></div><div class="ln w70"></div>
+            </div>
+            <div class="feed-card">
+              <div class="ln w70"></div><div class="ln w90"></div><div class="ln w50"></div>
+            </div>
+            <div class="feed-card">
+              <div class="ln w50"></div><div class="ln w70"></div><div class="ln w90"></div>
+            </div>
+          </div>
+        </div>
+        <div class="capture-status" data-od-id="hero-capture-status" aria-live="polite">
+          <span class="capture-pulse"></span>
+          <span class="status-live" data-i18n="landingStatusLive">正在滚动截图</span>
+          <span class="status-done" data-i18n="landingStatusDone">截图完成</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SIX CAPTURE MODES ============ -->
+<section id="features" data-od-id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow" data-i18n="landingModesEyebrow">六种截图模式</span>
+      <h2 data-i18n="landingModesHeadline">覆盖网页截图的每一种场景</h2>
+      <p class="lead" data-i18n="landingModesLead">从精确元素到完整页面，从手动滚动到批量打包——六种模式与插件一一对应，按场景直接选择。</p>
+    </div>
+    <div class="modes">
+      <article class="card mode" data-od-id="mode-region">
+        <span class="mode-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/><circle cx="12" cy="12" r="2.5"/></svg></span>
+        <h3 data-i18n="regionMode">区域截图</h3>
+        <p data-i18n="landingModeRegionDesc">点选任意元素，自动用最近可滚动祖先，截到滚不动的底部。</p>
+      </article>
+      <article class="card mode" data-od-id="mode-fullpage">
+        <span class="mode-ic"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/></svg></span>
+        <h3 data-i18n="fullPageMode">整页截图</h3>
+        <p data-i18n="landingModeFullPageDesc">自动滚动整页并拼接，懒加载尽量等到位。</p>
+      </article>
+      <article class="card mode" data-od-id="mode-custom">
+        <span class="mode-ic"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M12 16v3m0 0-2-2m2 2 2-2"/></svg></span>
+        <h3 data-i18n="customMode">手动滚动截图</h3>
+        <p data-i18n="landingModeCustomDesc">选定滚动区域后手动浏览内容，按实际滚动距离采帧、去重并拼接。</p>
+      </article>
+      <article class="card mode" data-od-id="mode-element">
+        <span class="mode-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3"/><rect x="8" y="8" width="8" height="8" rx="1.5"/></svg></span>
+        <h3 data-i18n="elementMode">元素截图</h3>
+        <p data-i18n="landingModeElementDesc">精确截取实际点中的 DOM 元素，不会自动提升到它的可滚动父容器。</p>
+      </article>
+      <article class="card mode" data-od-id="mode-focus">
+        <span class="mode-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M8 12h8M12 8v8"/></svg></span>
+        <h3 data-i18n="focusMode">聚焦截图</h3>
+        <p data-i18n="landingModeFocusDesc">临时展开目标祖先并隐藏无关分支，只保留目标内容完成长截图。</p>
+      </article>
+      <article class="card mode" data-od-id="mode-all-scrollable">
+        <span class="mode-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8V5a1 1 0 0 0-1-1h-3M3 8V5a1 1 0 0 1 1-1h3M3 16v3a1 1 0 0 0 1 1h3M21 16v3a1 1 0 0 1-1 1h-3"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg></span>
+        <h3 data-i18n="allScrollableMode">全部滚动元素</h3>
+        <p data-i18n="landingModeAllDesc">发现页面内全部可滚动元素，依次完成截图并打包下载为 ZIP。</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<hr class="hairline" style="max-width:1120px;margin:0 auto">
+
+<!-- ============ HOW TO ============ -->
+<section id="how" data-od-id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow" data-i18n="landingHowEyebrow">怎么用</span>
+      <h2 data-i18n="landingHowHeadline">三步，从打开图标到拿到截图</h2>
+      <p class="lead" data-i18n="landingHowLead">没有学习成本：选模式、点目标，剩下的滚动、裁剪、拼接都在本地自动完成。</p>
+    </div>
+    <div class="steps">
+      <article class="card step" data-od-id="step-1">
+        <span class="step-num">1</span>
+        <span class="step-ic"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></span>
+        <h3 data-i18n="landingStep1Title">选模式与设置</h3>
+        <p data-i18n="landingStep1Desc">点工具栏图标，挑一种截图模式，按需调整高分屏、延时等设置。</p>
+        <span class="mono-sm" data-i18n="landingStep1Meta">点击图标触发 · activeTab 授权</span>
+      </article>
+      <article class="card step" data-od-id="step-2">
+        <span class="step-num">2</span>
+        <span class="step-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v8m0 0 3-3m-3 3-3-3"/><path d="M5 13a7 7 0 0 0 14 0"/></svg></span>
+        <h3 data-i18n="landingStep2Title">点目标</h3>
+        <p data-i18n-html="landingStep2Desc">鼠标点要截的元素；自定义模式用 <span class="kbd">↑</span><span class="kbd">↓</span> 切到合适的层级。</p>
+        <span class="mono-sm" data-i18n="landingStep2Meta">拾取器高亮当前元素 · 显示选择器</span>
+      </article>
+      <article class="card step" data-od-id="step-3">
+        <span class="step-num">3</span>
+        <span class="step-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M6 7l1.2 11a1 1 0 0 0 1 .9h7.6a1 1 0 0 0 1-.9L18 7"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span>
+        <h3 data-i18n="landingStep3Title">自动滚动拼接</h3>
+        <p data-i18n="landingStep3Desc">自动滚动 · 截取可视区 · 按矩形拼接 → 下载 PNG 或先预览。</p>
+        <span class="mono-sm" data-i18n="landingStep3Meta">本地内存处理 · 直接写下载目录</span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EDIT & HIDE (fine-tune before capture) ============ -->
+<section id="tune" data-od-id="tune">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow" data-i18n="landingTuneEyebrow">截图前微调</span>
+      <h2 data-i18n="landingTuneHeadline">截图之前，先把页面调成你想要的样子</h2>
+      <p class="lead" data-i18n="landingTuneLead">选好目标后，可以直接在页面上编辑文字，或把干扰元素一个个点掉——所有改动都只用于这次截图，结束后页面原样还原。</p>
+    </div>
+    <div class="tune-grid">
+      <article class="card tune-card" data-od-id="tune-edit">
+        <span class="tune-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M14 4l6 6M4 20l1-4L17 4a2 2 0 0 1 3 3L8 19l-4 1z"/></svg></span>
+        <div>
+          <h3 data-i18n="landingEditTitle">编辑页面</h3>
+          <p data-i18n="landingEditDesc">把目标设为可编辑，直接改掉错别字、敏感信息或占位文案，确认后截取修改后的内容；按设置决定是否还原原文。</p>
+        </div>
+      </article>
+      <article class="card tune-card" data-od-id="tune-hide">
+        <span class="tune-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M3 3l18 18M10.5 10.7a2 2 0 0 0 2.8 2.8M9.9 5.1A9.4 9.4 0 0 1 12 5c5 0 9 5 9 7a14 14 0 0 1-2.2 3.1M6.1 6.6A14 14 0 0 0 3 12c0 2 4 7 9 7a9 9 0 0 0 3.4-.7"/></svg></span>
+        <div>
+          <h3 data-i18n="landingHideTitle">隐藏元素</h3>
+          <p data-i18n="landingHideDesc">点击广告、导航、弹窗等任何干扰元素将其标记，截图时这些元素会从最终图片中完全消失，结束后恢复原状。</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<hr class="hairline" style="max-width:1120px;margin:0 auto">
+
+<!-- ============ PRIVACY BAND ============ -->
+<section id="privacy" class="privacy" data-od-id="privacy">
+  <div class="wrap privacy-grid">
+    <div>
+      <span class="privacy-seal">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6Z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>
+        <span data-i18n="landingPrivacySeal">本地优先 · Local First</span>
+      </span>
+      <h2 data-i18n="landingPrivacyHeadline">本地处理，绝不上传。</h2>
+      <p class="lead" data-i18n="landingPrivacyLead">不采集、不存储、不上传任何页面内容或截图。所有像素只在你本机内存里处理完，再保存到下载目录。</p>
+    </div>
+    <div class="privacy-facts">
+      <div class="pfact" data-od-id="pfact-perms">
+        <span class="pfact-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <div>
+          <div class="pfact-t" data-i18n-html="landingPfactPermsTitle">仅 <span class="mono">activeTab + scripting</span> 权限</div>
+          <div class="pfact-d" data-i18n="landingPfactPermsDesc">不申请全量 host 权限，能做的就这一件：在你点击图标后，对当前标签页里的可见元素做截图处理。</div>
+        </div>
+      </div>
+      <div class="pfact" data-od-id="pfact-click">
+        <span class="pfact-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <div>
+          <div class="pfact-t" data-i18n="landingPfactClickTitle">点击图标才授权，无常驻 host</div>
+          <div class="pfact-d" data-i18n="landingPfactClickDesc">授权发生在你主动触发的那一刻，不后台读取任何站点，不存在静默运行的后台脚本。</div>
+        </div>
+      </div>
+      <div class="pfact" data-od-id="pfact-net">
+        <span class="pfact-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <div>
+          <div class="pfact-t" data-i18n="landingPfactNetTitle">无第三方网络请求</div>
+          <div class="pfact-d" data-i18n="landingPfactNetDesc">截图像素不出本机：滚动、裁剪、拼接都在内存里完成，结果只落进你选的下载目录。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<section id="install" data-od-id="final-cta">
+  <div class="wrap final">
+    <h2 data-i18n="landingCtaTitle">把任意元素，完整截下来</h2>
+    <p class="lead" data-i18n="landingCtaSub">区域、整页、自定义、全部滚动元素——四种模式，一次装好。</p>
+    <a class="btn btn-primary" href="https://github.com/SublimeCT/element-screenshot-extension" target="_blank" rel="noreferrer" data-od-id="final-install" style="font-size:15px;padding:13px 22px">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
+      <span data-i18n="landingInstall">添加到 Chrome</span>
+    </a>
+    <div class="note" data-i18n="landingCtaNote">上架 Chrome Web Store 后提供安装链接</div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer data-od-id="footer">
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <span class="brand"><i></i><i></i><i></i><i></i></span>
+      <span>Screenshot Suite</span>
+    </div>
+    <span class="foot-tag" data-i18n="landingFootTag">· 本地优先的网页截图套件</span>
+    <nav class="foot-links" data-i18n-aria="landingFootAria" aria-label="页脚">
+      <a href="#" data-od-id="footer-privacy" data-i18n="landingFootPrivacy">隐私政策</a>
+      <a href="https://github.com/SublimeCT/element-screenshot-extension/issues" target="_blank" rel="noreferrer" data-od-id="footer-feedback" data-i18n="landingFootFeedback">反馈</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="landing-i18n.js"></script>
+<script>
+(() => {
+  const scroller = document.querySelector('[data-od-id="hero-scroll-demo"]');
+  const status = document.querySelector('[data-od-id="hero-capture-status"]');
+  if (!scroller || !status) return;
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let frameId;
+  let startedAt;
+  const scrollDuration = 5200;
+  const holdDuration = 1500;
+
+  const render = (time) => {
+    if (reducedMotion.matches) {
+      scroller.scrollTop = scroller.scrollHeight;
+      status.classList.add('is-done');
+      return;
+    }
+
+    startedAt ??= time;
+    const elapsed = time - startedAt;
+    const cycle = scrollDuration + holdDuration;
+    const position = elapsed % cycle;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+    if (position <= scrollDuration) {
+      const progress = position / scrollDuration;
+      scroller.scrollTop = maxScroll * (progress * progress * (3 - 2 * progress));
+      status.classList.remove('is-done');
+    } else {
+      scroller.scrollTop = maxScroll;
+      status.classList.add('is-done');
+    }
+
+    frameId = requestAnimationFrame(render);
+  };
+
+  const restart = () => {
+    cancelAnimationFrame(frameId);
+    startedAt = undefined;
+    status.classList.remove('is-done');
+    scroller.scrollTop = 0;
+    frameId = requestAnimationFrame(render);
+  };
+
+  reducedMotion.addEventListener('change', restart);
+  restart();
+})();
+</script>
+</body>
+</html>

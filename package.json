@@ -4,6 +4,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "packageManager": "pnpm@10.4.1",
   "scripts": {
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",
@@ -13,6 +14,8 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
+    "generate:icons": "node scripts/generate-icons.mjs public/icon",
+    "generate:favicons": "node scripts/generate-icons.mjs favicons public/landing",
     "test:e2e": "pnpm build:e2e && playwright test",
     "postinstall": "wxt prepare"
   },

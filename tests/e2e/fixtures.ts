@@ -7,23 +7,28 @@ interface ExtensionFixtures {
 }
 
 export const test = base.extend<ExtensionFixtures>({
-  context: async ({ deviceScaleFactor }, use, testInfo) => {
+  context: async ({ deviceScaleFactor }, use) => {
     const extensionPath = path.resolve('dist/chrome-mv3-e2e');
     const scaleFactor = deviceScaleFactor ?? 1;
     const context = await chromium.launchPersistentContext(
-      testInfo.outputPath('browser-profile'),
+      '',
       {
         acceptDownloads: true,
         args: [
           `--disable-extensions-except=${extensionPath}`,
           `--load-extension=${extensionPath}`,
-          ...(scaleFactor === 1
-            ? []
-            : [`--force-device-scale-factor=${scaleFactor}`]),
+          // captureVisibleTab follows Chromium's browser-surface scale, so the
+          // surface must match the emulated JS DPR on Retina and non-Retina hosts.
+          `--force-device-scale-factor=${scaleFactor}`,
         ],
+        // Keep this aligned with Playwright's official extension guide:
+        // https://playwright.dev/docs/chrome-extensions
+        // Do not replace the persistent Chromium context with Chrome/Edge or
+        // a regular browser context; side-loaded extensions are unsupported.
         channel: 'chromium',
         deviceScaleFactor: scaleFactor,
-        headless: true,
+        headless: false,
+        locale: 'zh-CN',
         viewport: { height: 800, width: 1100 },
       },
     );

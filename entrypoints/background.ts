@@ -1,9 +1,13 @@
 import { MESSAGE_TYPES, PICKER_SCRIPT_PATH } from '@/lib/constants';
+import { normalizeCaptureSettings } from '@/lib/settings';
 import type {
   CaptureTabRequest,
   CaptureTabResponse,
   CommandResponse,
   ContentPingRequest,
+  OpenPreviewRequest,
+  PreviewReadyRequest,
+  SetPreviewDataRequest,
   StartPickCommand,
   StartPickRequest,
 } from '@/lib/types';
@@ -25,6 +29,27 @@ function errorMessage(error: unknown): string {
 
 async function captureVisibleTabAsync(windowId: number): Promise<string> {
   return await browser.tabs.captureVisibleTab(windowId, { format: 'png' });
+}
+
+async function createPreviewTab(dataUrl: string): Promise<void> {
+  const tab = await browser.tabs.create({ url: new URL('preview.html', browser.runtime.getURL('/')).href });
+  if (tab.id === undefined) throw new Error('无法创建预览标签页。');
+  const tabId = tab.id;
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      browser.runtime.onMessage.removeListener(onReady);
+      reject(new Error('预览页面加载失败。'));
+    }, 5000);
+    const onReady = (message: unknown, sender: { tab?: { id?: number } }): void => {
+      if (!isRecord(message) || message.type !== MESSAGE_TYPES.PREVIEW_READY || sender.tab?.id !== tabId) return;
+      clearTimeout(timeout);
+      browser.runtime.onMessage.removeListener(onReady);
+      resolve();
+    };
+    browser.runtime.onMessage.addListener(onReady);
+  });
+  const request: SetPreviewDataRequest = { dataUrl, tabId, type: MESSAGE_TYPES.SET_PREVIEW_DATA };
+  await browser.runtime.sendMessage(request);
 }
 
 async function isPickerInjected(tabId: number): Promise<boolean> {
@@ -49,7 +74,9 @@ async function ensurePickerInjected(tabId: number): Promise<void> {
   });
 }
 
-async function startPickerInActiveTab(): Promise<CommandResponse> {
+async function startPickerInActiveTab(
+  request: StartPickRequest,
+): Promise<CommandResponse> {
   try {
     const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
     if (tab?.id === undefined) {
@@ -57,7 +84,11 @@ async function startPickerInActiveTab(): Promise<CommandResponse> {
     }
 
     await ensurePickerInjected(tab.id);
-    const command: StartPickCommand = { type: MESSAGE_TYPES.START_PICK };
+    const command: StartPickCommand = {
+      mode: request.mode,
+      settings: request.settings,
+      type: MESSAGE_TYPES.START_PICK,
+    };
     const response: unknown = await browser.tabs.sendMessage(tab.id, command);
     if (!isRecord(response) || response.ok !== true) {
       throw new Error('无法启动元素选取模式。');
@@ -102,10 +133,38 @@ export default defineBackground(() => {
       }
 
       if (hasMessageType(message, MESSAGE_TYPES.START_PICK_REQUEST)) {
-        const request: StartPickRequest = message;
-        void request;
+        const request = message as StartPickRequest;
+        const normalizedRequest: StartPickRequest = {
+          mode: request.mode ?? 'region',
+          settings: normalizeCaptureSettings(request.settings),
+          type: MESSAGE_TYPES.START_PICK_REQUEST,
+        };
+        void startPickerInActiveTab(normalizedRequest).then(sendResponse);
+        return true;
+      }
 
-        void startPickerInActiveTab().then(sendResponse);
+      if (hasMessageType(message, MESSAGE_TYPES.OPEN_PREVIEW)) {
+        const request = message as OpenPreviewRequest;
+        void createPreviewTab(request.dataUrl)
+          .then(() => sendResponse({ ok: true }))
+          .catch((error: unknown) =>
+            sendResponse({ error: errorMessage(error), ok: false }),
+          );
+        return true;
+      }
+
+      if (hasMessageType(message, MESSAGE_TYPES.PREVIEW_READY)) {
+        const request = message as PreviewReadyRequest;
+        void request;
+        sendResponse({ ok: true });
+        return;
+      }
+
+      if (hasMessageType(message, MESSAGE_TYPES.SET_PREVIEW_DATA)) {
+        const request = message as SetPreviewDataRequest;
+        void browser.tabs.sendMessage(request.tabId, request)
+          .then(() => sendResponse({ ok: true }))
+          .catch((error: unknown) => sendResponse({ error: errorMessage(error), ok: false }));
         return true;
       }
 

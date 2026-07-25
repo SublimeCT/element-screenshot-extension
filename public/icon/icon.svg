@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="bg" gradientTransform="rotate(150)">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f7f7f5"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded square -->
+  <rect x="0.5" y="0.5" width="47" height="47" rx="12" fill="url(#bg)" stroke="#e8e6e2" stroke-width="1"/>
+  <!-- Corner brackets -->
+  <g stroke="#E85D2C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Top-left -->
+    <path d="M 12 22 L 12 12 L 22 12"/>
+    <!-- Top-right -->
+    <path d="M 26 12 L 36 12 L 36 22"/>
+    <!-- Bottom-left -->
+    <path d="M 12 26 L 12 36 L 22 36"/>
+    <!-- Bottom-right -->
+    <path d="M 26 36 L 36 36 L 36 26"/>
+  </g>
+</svg>

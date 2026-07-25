@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Element Shot - Simple Fixture</title>
+    <title>Screenshot Suite - Simple Fixture</title>
     <style>
       * { box-sizing: border-box; }
       body {
@@ -47,6 +47,21 @@
       }
       #static-target h2 { margin: 0 0 8px; font-size: 20px; }
       #static-target p { margin: 0; line-height: 1.5; }
+      #secondary-scroll-target {
+        width: 320px;
+        height: 128px;
+        margin-top: 36px;
+        overflow-y: auto;
+        border: 2px solid #263c73;
+        background: #fff;
+      }
+      .secondary-row {
+        display: grid;
+        height: 56px;
+        place-items: center;
+        border-bottom: 1px solid rgb(38 60 115 / 24%);
+        font: 700 13px/1 monospace;
+      }
       #fixed-obstruction {
         position: fixed;
         z-index: 10;
@@ -58,6 +73,17 @@
         background: #263c73;
         font: 700 12px/1.2 monospace;
       }
+      #page-tail { margin-top: 48px; }
+      .tail-band {
+        display: grid;
+        height: 260px;
+        place-items: center;
+        font: 700 22px/1 monospace;
+      }
+      .tail-band:nth-child(1) { background: #263c73; color: #fff; }
+      .tail-band:nth-child(2) { background: #f9d66d; }
+      .tail-band:nth-child(3) { background: #b9dfd0; }
+      .tail-band:nth-child(4) { background: #f6a58d; }
     </style>
   </head>
   <body>
@@ -76,10 +102,24 @@
         <div class="row"><span>Pluto</span><strong>ROW 09</strong></div>
       </section>
 
+      <section id="secondary-scroll-target" aria-label="Secondary scroll target">
+        <div class="secondary-row">SECONDARY 01</div>
+        <div class="secondary-row">SECONDARY 02</div>
+        <div class="secondary-row">SECONDARY 03</div>
+        <div class="secondary-row">SECONDARY 04</div>
+      </section>
+
       <article id="static-target">
         <h2>Static card</h2>
         <p>A compact non-scrolling target for the single-frame path.</p>
       </article>
+
+      <section id="page-tail" aria-label="Full page capture markers">
+        <div class="tail-band">PAGE 01</div>
+        <div class="tail-band">PAGE 02</div>
+        <div class="tail-band">PAGE 03</div>
+        <div class="tail-band">PAGE 04</div>
+      </section>
     </main>
     <aside id="fixed-obstruction">FIXED OVERLAY</aside>
     <script type="module" src="./main.ts"></script>
