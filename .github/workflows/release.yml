@@ -1,17 +1,9 @@
 name: Release
 
-# Builds the production extension, zips it, and attaches the zip (built under
-# dist/) to a GitHub Release. Triggered by pushing a version tag (v*).
-
 on:
   push:
     tags:
-      - 'v*'
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to publish (must already exist)'
-        required: true
+      - v*
 
 permissions:
   contents: write
@@ -35,38 +27,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Resolve tag
-        id: tag
-        run: |
-          if [ -n "${{ inputs.tag }}" ]; then
-            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "name=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Build production extension
+      - name: Build
         run: pnpm run build
 
-      - name: Zip extension
+      - name: Zip
         run: pnpm run zip
 
-      - name: Locate artifact
-        id: artifact
-        run: |
-          set -euo pipefail
-          zip_path="$(find dist -maxdepth 1 -name '*.zip' | head -n 1)"
-          if [ -z "$zip_path" ]; then
-            echo "No zip found under dist/" >&2
-            exit 1
-          fi
-          echo "path=$zip_path" >> "$GITHUB_OUTPUT"
-          echo "Found release artifact: $zip_path"
-
-      - name: Create / update GitHub Release
+      - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.name }}
-          name: ${{ steps.tag.outputs.name }}
           generate_release_notes: true
           fail_on_unmatched_files: true
-          files: ${{ steps.artifact.outputs.path }}
+          files: dist/*.zip

@@ -1,12 +1,5 @@
 name: Deploy landing page
 
-# Hosts the standalone landing page (public/landing) on GitHub Pages.
-# The site root redirects to ./landing/ so the project URL
-# (https://<org>.github.io/<repo>) serves the landing page, while
-# public/_locales and public/icon stay one level above /landing/ —
-# matching the relative paths (../_locales, ../icon) used by the page,
-# which therefore resolve identically inside the extension and on Pages.
-
 on:
   push:
     branches: [main]
@@ -14,6 +7,7 @@ on:
       - 'public/landing/**'
       - 'public/_locales/**'
       - 'public/icon/**'
+      - 'public/index.html'
       - '.github/workflows/deploy-landing.yml'
   workflow_dispatch:
 
@@ -22,7 +16,6 @@ permissions:
   pages: write
   id-token: write
 
-# Allow only one concurrent Pages deployment.
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -31,41 +24,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Stage Pages content
-        run: |
-          set -euo pipefail
-          STAGE="site"
-          mkdir -p "$STAGE"
-          # Landing page + shared assets, keeping the in-repo layout so the
-          # page's relative paths (../_locales, ../icon) resolve correctly.
-          cp -R public/. "$STAGE/"
-
-          # Root index.html is not part of the extension; generate a redirect
-          # so the project root URL serves the landing page.
-          cat > "$STAGE/index.html" <<'HTML'
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Screenshot Suite</title>
-<link rel="icon" href="./landing/favicon.ico">
-<meta http-equiv="refresh" content="0; url=./landing/">
-<link rel="canonical" href="./landing/">
-</head>
-<body>
-Redirecting to <a href="./landing/">the landing page</a>…
-<script>location.replace('./landing/');</script>
-</body>
-</html>
-HTML
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./site
-          retention-days: 7
+          path: public
 
   deploy:
     needs: build
@@ -74,5 +39,6 @@ HTML
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
+      - name: Deploy
+        id: deployment
         uses: actions/deploy-pages@v4
