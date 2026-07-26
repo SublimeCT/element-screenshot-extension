@@ -2,7 +2,7 @@
   "name": "element-full-screenshot",
   "description": "Capture the complete content of a selected scrollable element.",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.0",
   "type": "module",
   "packageManager": "pnpm@10.4.1",
   "scripts": {
