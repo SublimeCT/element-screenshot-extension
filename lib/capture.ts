@@ -35,6 +35,7 @@ interface ManualCapturedFrame {
   clipRect: DeviceRect;
   dataUrl: string;
   position: CssPixels;
+  viewportHeight: CssPixels;
 }
 
 export interface CaptureElementOptions {
@@ -50,7 +51,6 @@ export interface CaptureElementOptions {
 }
 
 const VIEWPORT_TOLERANCE_CSS_PX = 1;
-const GEOMETRY_TOLERANCE = 0.002;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -357,6 +357,20 @@ function readBorderVisualRect(element: HTMLElement): CssRect {
   return toCssRect(element.getBoundingClientRect());
 }
 
+function positionLockedRect(current: CssRect, lockedSize: CssRect): CssRect {
+  // Positions and locked dimensions are CSS pixels. The capture session owns
+  // one deterministic size; per-frame DOM reads update only its viewport
+  // position before cssRectToDeviceRect converts the crop to physical pixels.
+  return {
+    bottom: cssPixels(Number(current.top) + Number(lockedSize.height)),
+    height: lockedSize.height,
+    left: current.left,
+    right: cssPixels(Number(current.left) + Number(lockedSize.width)),
+    top: current.top,
+    width: lockedSize.width,
+  };
+}
+
 async function waitForTwoAnimationFrames(): Promise<void> {
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
@@ -425,6 +439,7 @@ async function captureElementByScrollingPage(
   let outputWidth = devicePixels(Math.max(1, Math.round(initial.width * dpr)));
   let outputHeight = devicePixels(0);
   let capturedVisualHeight = 0;
+  let stableRect: CssRect | null = null;
   let pagePosition = Math.max(
     0,
     Math.min(
@@ -442,13 +457,15 @@ async function captureElementByScrollingPage(
       throwIfAborted(options.signal);
 
       const actualScrollY = window.scrollY;
-      const current = readBorderVisualRect(element);
-      if (
-        Math.abs(Number(current.width) - Number(initial.width)) > VIEWPORT_TOLERANCE_CSS_PX ||
-        Math.abs(Number(current.height) - Number(initial.height)) > VIEWPORT_TOLERANCE_CSS_PX
-      ) {
-        throw new Error('截图过程中目标元素尺寸发生变化，请等待页面稳定后重试。');
-      }
+      const measuredRect = readBorderVisualRect(element);
+      // Establish the geometry baseline only after the first requested page
+      // position has settled. Responsive pages can legitimately reflow once
+      // when the picker UI disappears or the target first enters the viewport.
+      // Once the first frame establishes the capture size, later DOM reads
+      // update only its position. A capture-session invariant must never be
+      // converted into a user-facing "element size changed" failure.
+      if (!stableRect) stableRect = measuredRect;
+      const current = positionLockedRect(measuredRect, stableRect);
       if (
         current.left < -VIEWPORT_TOLERANCE_CSS_PX ||
         current.right > window.innerWidth + VIEWPORT_TOLERANCE_CSS_PX
@@ -458,7 +475,7 @@ async function captureElementByScrollingPage(
 
       intersectWithViewport(current);
       const visibleEnd = Math.min(
-        Number(initial.height),
+        Number(stableRect.height),
         Math.max(0, window.innerHeight - Number(current.top)),
       );
       const segmentStart = capturedVisualHeight;
@@ -497,7 +514,7 @@ async function captureElementByScrollingPage(
       outputHeight = devicePixels(Math.round(capturedVisualHeight * dpr));
       options.onProgress?.(frames.length, frames.length);
 
-      if (capturedVisualHeight >= Number(initial.height) - VIEWPORT_TOLERANCE_CSS_PX) {
+      if (capturedVisualHeight >= Number(stableRect.height) - VIEWPORT_TOLERANCE_CSS_PX) {
         break;
       }
       const pageHeight = readPageHeight();
@@ -582,6 +599,7 @@ async function captureElementByScrollingParent(
   let outputWidth = devicePixels(Math.max(1, Math.round(initial.width * dpr)));
   let outputHeight = devicePixels(0);
   let capturedVisualHeight = 0;
+  let stableRect: CssRect | null = null;
   let knownScrollHeight = cssPixels(parent.scrollHeight);
   let positions = computeScrollPositions(
     knownScrollHeight,
@@ -605,13 +623,10 @@ async function captureElementByScrollingParent(
           cssPixels(parent.clientHeight),
         );
       }
-      const current = readBorderVisualRect(element);
-      if (
-        Math.abs(Number(current.width) - Number(initial.width)) > VIEWPORT_TOLERANCE_CSS_PX ||
-        Math.abs(Number(current.height) - Number(initial.height)) > VIEWPORT_TOLERANCE_CSS_PX
-      ) {
-        throw new Error('截图过程中目标元素尺寸发生变化，请等待页面稳定后重试。');
-      }
+      const measuredRect = readBorderVisualRect(element);
+      const current = stableRect
+        ? positionLockedRect(measuredRect, stableRect)
+        : measuredRect;
       if (
         current.left < -VIEWPORT_TOLERANCE_CSS_PX ||
         current.right > window.innerWidth + VIEWPORT_TOLERANCE_CSS_PX
@@ -622,9 +637,14 @@ async function captureElementByScrollingParent(
       const parentRect = readBorderVisualRect(parent);
       const visibleRect = intersectCssRects(current, parentRect, viewportRect);
       if (visibleRect) {
+        // A child can reflow while its scroll parent moves it into view (for
+        // example, when lazy content is first laid out). Use the first visible
+        // frame as the deterministic CSS-pixel size for this capture session.
+        // Later reads update position only; they never invalidate the session.
+        if (!stableRect) stableRect = measuredRect;
         const visibleStart = Math.max(0, Number(visibleRect.top) - Number(current.top));
         const visibleEnd = Math.min(
-          Number(initial.height),
+          Number(stableRect.height),
           Math.max(0, Number(visibleRect.bottom) - Number(current.top)),
         );
         const segmentStart = capturedVisualHeight;
@@ -661,7 +681,10 @@ async function captureElementByScrollingParent(
         }
       }
 
-      if (capturedVisualHeight >= Number(initial.height) - VIEWPORT_TOLERANCE_CSS_PX) {
+      if (
+        stableRect &&
+        capturedVisualHeight >= Number(stableRect.height) - VIEWPORT_TOLERANCE_CSS_PX
+      ) {
         break;
       }
       positionIndex += 1;
@@ -670,7 +693,10 @@ async function captureElementByScrollingParent(
     if (frames.length >= MAX_CAPTURE_SEGMENTS) {
       throw new Error('滚动高度持续增长，已达到安全截图上限。');
     }
-    if (capturedVisualHeight < Number(initial.height) - VIEWPORT_TOLERANCE_CSS_PX) {
+    if (
+      !stableRect ||
+      capturedVisualHeight < Number(stableRect.height) - VIEWPORT_TOLERANCE_CSS_PX
+    ) {
       throw new Error('可滚动父元素未能显示目标的完整内容。');
     }
     return { frames, outputHeight, outputWidth };
@@ -857,31 +883,12 @@ export async function capturePage(
   }
 }
 
-function assertStableGeometry(
-  initial: InnerVisualGeometry,
-  current: InnerVisualGeometry,
-): void {
-  if (
-    Math.abs(initial.scaleX - current.scaleX) > GEOMETRY_TOLERANCE ||
-    Math.abs(initial.scaleY - current.scaleY) > GEOMETRY_TOLERANCE
-  ) {
-    throw new Error('截图过程中目标元素尺寸发生变化，请等待页面稳定后重试。');
-  }
-}
-
 async function captureScrollableElement(
   element: HTMLElement,
   options: Required<CaptureElementOptions>,
 ): Promise<CaptureResult> {
-  const initial = readInnerVisualGeometry(element);
-  assertFullyVisible(initial.rect);
-
-  const dpr = window.devicePixelRatio;
-  const outputWidth = devicePixels(
-    Math.max(1, Math.round(initial.rect.width * dpr)),
-  );
   let knownScrollHeight = cssPixels(element.scrollHeight);
-  const clientHeight = cssPixels(element.clientHeight);
+  let clientHeight = cssPixels(element.clientHeight);
 
   // Visit the current bottom a few times before taking the first frame. This
   // lets lazy-loaded content settle and gives the loop a better initial height
@@ -896,6 +903,19 @@ async function captureScrollableElement(
     }
     knownScrollHeight = measuredHeight;
   }
+
+  // Bottom probing may trigger a one-time responsive/lazy-load reflow. No
+  // screenshot has been taken yet, so establish the stable CSS-pixel geometry
+  // only after that probe instead of comparing against the picker-time shape.
+  const initial = readInnerVisualGeometry(element);
+  assertFullyVisible(initial.rect);
+  knownScrollHeight = cssPixels(Math.max(Number(knownScrollHeight), element.scrollHeight));
+  clientHeight = cssPixels(element.clientHeight);
+
+  const dpr = window.devicePixelRatio;
+  const outputWidth = devicePixels(
+    Math.max(1, Math.round(initial.rect.width * dpr)),
+  );
 
   let positions = computeScrollPositions(knownScrollHeight, clientHeight);
   const frames: CaptureFrame[] = [];
@@ -921,9 +941,9 @@ async function captureScrollableElement(
         knownScrollHeight = measuredHeight;
         positions = computeScrollPositions(knownScrollHeight, clientHeight);
       }
-      const current = readInnerVisualGeometry(element);
-      assertFullyVisible(current.rect);
-      assertStableGeometry(initial, current);
+      const measuredGeometry = readInnerVisualGeometry(element);
+      const current = positionLockedRect(measuredGeometry.rect, initial.rect);
+      assertFullyVisible(current);
 
       const nextCumulativeHeight = devicePixels(
         Math.round(
@@ -953,7 +973,7 @@ async function captureScrollableElement(
       const dataUrl = await requestVisibleTabCapture();
       frames.push({
         clipRect: computeBottomSliceDeviceRect(
-          current.rect,
+          current,
           dpr,
           segmentHeight,
           outputWidth,
@@ -1065,9 +1085,9 @@ export async function captureManualScrollElement(
   const originalScrollY = window.scrollY;
   const originalScrollTop = element.scrollTop;
   const dpr = window.devicePixelRatio;
-  // Manual mode must never change the page position when capture starts.
-  // The user controls every scroll; an off-screen or partially visible target
-  // is rejected below instead of being moved implicitly.
+  // Manual mode must never change the page position when capture starts. The
+  // user controls every scroll, and a partially visible element is captured
+  // through its current viewport intersection instead of being moved.
   const initialGeometry: InnerVisualGeometry = pageTarget
     ? {
         rect: {
@@ -1082,7 +1102,12 @@ export async function captureManualScrollElement(
         scaleY: 1,
       }
     : readInnerVisualGeometry(element);
-  if (!pageTarget) assertFullyVisible(initialGeometry.rect);
+  // Manual mode captures the selected region that is actually visible. A
+  // partially clipped scroll container is still a valid capture aperture; the
+  // user should not have to reposition the page just to start the first frame.
+  const initialVisibleRect = pageTarget
+    ? initialGeometry.rect
+    : intersectWithViewport(initialGeometry.rect);
 
   const scrollEventTarget: EventTarget = pageTarget ? window : element;
   const readPosition = (): CssPixels =>
@@ -1123,9 +1148,11 @@ export async function captureManualScrollElement(
     }
 
     const geometry = readGeometry();
+    let visibleRect = geometry.rect;
     if (!pageTarget) {
-      assertFullyVisible(geometry.rect);
-      assertStableGeometry(initialGeometry, geometry);
+      const positionedRect = positionLockedRect(geometry.rect, initialGeometry.rect);
+      const currentVisibleRect = intersectWithViewport(positionedRect);
+      visibleRect = positionLockedRect(currentVisibleRect, initialVisibleRect);
     }
     const timeUntilAllowed =
       lastCaptureStartedAt + requiredOptions.minCaptureIntervalMs - performance.now();
@@ -1147,8 +1174,15 @@ export async function captureManualScrollElement(
           x: devicePixels(0),
           y: devicePixels(0),
         }
-      : cssRectToDeviceRect(geometry.rect, dpr);
-    manualFrames.set(Number(position), { clipRect, dataUrl, position });
+      // visibleRect is measured in CSS pixels; element-region captures use
+      // devicePixelRatio to crop the physical captureVisibleTab bitmap.
+      : cssRectToDeviceRect(visibleRect, dpr);
+    manualFrames.set(Number(position), {
+      clipRect,
+      dataUrl,
+      position,
+      viewportHeight: cssPixels(Number(visibleRect.height)),
+    });
     requiredOptions.onProgress(manualFrames.size, manualFrames.size);
   };
 
@@ -1227,9 +1261,7 @@ export async function captureManualScrollElement(
       let segmentHeight = frame.clipRect.height;
       if (previousPosition !== null) {
         const scrollDelta = Number(frame.position) - Number(previousPosition);
-        const viewportCssHeight = pageTarget
-          ? window.innerHeight
-          : element.clientHeight;
+        const viewportCssHeight = Number(frame.viewportHeight);
         if (scrollDelta > viewportCssHeight + VIEWPORT_TOLERANCE_CSS_PX) {
           throw new Error('两次截图之间滚动超过一屏，无法保证内容完整。');
         }

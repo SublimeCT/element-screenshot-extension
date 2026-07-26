@@ -18,6 +18,10 @@ playwright-report
 test-results
 test-results-*
 
+# Recording scratch — raw recorder output, fully regenerable via `pnpm record`.
+# The published (committed) copy lives in public/landing/modes-assets/.
+demo
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

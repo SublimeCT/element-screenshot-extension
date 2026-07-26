@@ -47,17 +47,23 @@ function assertClipFitsBitmap(
 
 export async function stitchFramesToPng({
   frames,
-  outputHeight,
   outputWidth,
 }: CaptureResult): Promise<Blob> {
   if (typeof OffscreenCanvas === 'undefined') {
     throw new Error('当前浏览器不支持 OffscreenCanvas。');
   }
-  if (frames.length === 0 || outputWidth <= 0 || outputHeight <= 0) {
+  // Every clip height is already an integer count of physical pixels. Their
+  // sum is the only authoritative stitched height; a separately rounded CSS
+  // cumulative height can differ by one pixel and must not invalidate frames.
+  const stitchedHeight = devicePixels(frames.reduce(
+    (height, frame) => height + Number(frame.clipRect.height),
+    0,
+  ));
+  if (frames.length === 0 || outputWidth <= 0 || stitchedHeight <= 0) {
     throw new Error('没有可供拼接的截图帧。');
   }
 
-  const canvas = new OffscreenCanvas(outputWidth, outputHeight);
+  const canvas = new OffscreenCanvas(outputWidth, stitchedHeight);
   const context = canvas.getContext('2d', { alpha: false });
   if (!context) {
     throw new Error('无法创建图像拼接上下文。');
@@ -89,10 +95,6 @@ export async function stitchFramesToPng({
     } finally {
       bitmap.close();
     }
-  }
-
-  if (destinationY !== outputHeight) {
-    throw new Error('拼接后的物理像素高度与预期不一致。');
   }
 
   return await canvas.convertToBlob({ type: 'image/png' });

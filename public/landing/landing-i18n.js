@@ -56,7 +56,11 @@
       if (msg && msg.message) el.setAttribute('placeholder', msg.message);
     });
 
-    var titleMsg = messages['landingTitle'];
+    // A page may set its own key via <title data-i18n="…">; otherwise fall back
+    // to the generic landing title. (index.html's <title> has no data-i18n.)
+    var titleEl = document.querySelector('title[data-i18n]');
+    var titleKey = titleEl ? titleEl.getAttribute('data-i18n') : 'landingTitle';
+    var titleMsg = messages[titleKey];
     if (titleMsg && titleMsg.message) document.title = titleMsg.message;
 
     var descEl = document.querySelector('meta[name="description"]');
@@ -87,6 +91,7 @@
   /** Load + apply a locale, updating <html lang>. */
   async function applyLocale(locale) {
     document.documentElement.lang = locale.replace('_', '-');
+    document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
     var messages = await loadMessages(locale);
     applyMessages(messages);
   }

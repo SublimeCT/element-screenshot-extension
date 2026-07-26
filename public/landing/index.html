@@ -149,13 +149,18 @@ section{padding:96px 0}
 .modes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 @media (max-width:920px){.modes{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:560px){.modes{grid-template-columns:1fr}}
-.mode{padding:22px 20px;display:flex;flex-direction:column;gap:12px;transition:transform .14s ease,box-shadow .14s ease,border-color .14s}
+.mode{position:relative;padding:22px 20px;display:flex;flex-direction:column;gap:12px;transition:transform .14s ease,box-shadow .14s ease,border-color .14s}
 .mode:hover{transform:translateY(-2px);box-shadow:var(--sh-md);border-color:var(--border-strong)}
 .mode-ic{width:42px;height:42px;border-radius:11px;background:var(--surface-2);border:1px solid var(--border);display:grid;place-items:center;color:var(--fg)}
 .mode-ic .icon{width:22px;height:22px}
 .mode h3{font-family:var(--font-display);font-weight:600;font-size:16.5px;letter-spacing:-.01em}
 .mode p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55}
 .mode .kbd{margin:0 1px}
+/* "查看演示" link; ::after stretches the click area across the whole card */
+.mode-link{display:inline-flex;align-items:center;gap:5px;margin-top:auto;font-family:var(--font-body);font-weight:600;font-size:13px;color:var(--accent-ink);text-decoration:none}
+.mode-link .icon{width:15px;height:15px;stroke-width:2.1;transition:transform .14s}
+.mode:hover .mode-link .icon{transform:translateX(2px)}
+.mode-link::after{content:"";position:absolute;inset:0}
 
 /* ===== HOW TO (timeline) ===== */
 .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;position:relative}
@@ -348,31 +353,37 @@ footer{border-top:1px solid var(--border);background:var(--surface)}
         <span class="mode-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/><circle cx="12" cy="12" r="2.5"/></svg></span>
         <h3 data-i18n="regionMode">区域截图</h3>
         <p data-i18n="landingModeRegionDesc">点选任意元素，自动用最近可滚动祖先，截到滚不动的底部。</p>
+        <a class="mode-link" href="region.html" data-i18n="modeDetailViewDemo">查看演示 <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </article>
       <article class="card mode" data-od-id="mode-fullpage">
         <span class="mode-ic"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/></svg></span>
         <h3 data-i18n="fullPageMode">整页截图</h3>
         <p data-i18n="landingModeFullPageDesc">自动滚动整页并拼接，懒加载尽量等到位。</p>
+        <a class="mode-link" href="fullPage.html" data-i18n="modeDetailViewDemo">查看演示 <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </article>
       <article class="card mode" data-od-id="mode-custom">
         <span class="mode-ic"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M12 16v3m0 0-2-2m2 2 2-2"/></svg></span>
         <h3 data-i18n="customMode">手动滚动截图</h3>
         <p data-i18n="landingModeCustomDesc">选定滚动区域后手动浏览内容，按实际滚动距离采帧、去重并拼接。</p>
+        <a class="mode-link" href="custom.html" data-i18n="modeDetailViewDemo">查看演示 <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </article>
       <article class="card mode" data-od-id="mode-element">
         <span class="mode-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3"/><rect x="8" y="8" width="8" height="8" rx="1.5"/></svg></span>
         <h3 data-i18n="elementMode">元素截图</h3>
         <p data-i18n="landingModeElementDesc">精确截取实际点中的 DOM 元素，不会自动提升到它的可滚动父容器。</p>
+        <a class="mode-link" href="element.html" data-i18n="modeDetailViewDemo">查看演示 <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </article>
       <article class="card mode" data-od-id="mode-focus">
         <span class="mode-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M8 12h8M12 8v8"/></svg></span>
         <h3 data-i18n="focusMode">聚焦截图</h3>
         <p data-i18n="landingModeFocusDesc">临时展开目标祖先并隐藏无关分支，只保留目标内容完成长截图。</p>
+        <a class="mode-link" href="focus.html" data-i18n="modeDetailViewDemo">查看演示 <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </article>
       <article class="card mode" data-od-id="mode-all-scrollable">
         <span class="mode-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8V5a1 1 0 0 0-1-1h-3M3 8V5a1 1 0 0 1 1-1h3M3 16v3a1 1 0 0 0 1 1h3M21 16v3a1 1 0 0 1-1 1h-3"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg></span>
         <h3 data-i18n="allScrollableMode">全部滚动元素</h3>
         <p data-i18n="landingModeAllDesc">发现页面内全部可滚动元素，依次完成截图并打包下载为 ZIP。</p>
+        <a class="mode-link" href="allScrollable.html" data-i18n="modeDetailViewDemo">查看演示 <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </article>
     </div>
   </div>

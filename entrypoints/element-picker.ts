@@ -361,16 +361,13 @@ function eventElement(event: Event): HTMLElement | null {
   return element ?? null;
 }
 
-function resolveCaptureTarget(element: HTMLElement): HTMLElement {
+function resolveRegionCaptureTarget(element: HTMLElement): HTMLElement | null {
   let candidate: HTMLElement | null = element;
-  while (candidate && candidate !== document.body && candidate !== document.documentElement) {
-    const { overflowY } = getComputedStyle(candidate);
-    if ((overflowY === 'auto' || overflowY === 'scroll') && candidate.scrollHeight > candidate.clientHeight) {
-      return candidate;
-    }
+  while (candidate) {
+    if (isScrollableElement(candidate)) return candidate;
     candidate = candidate.parentElement;
   }
-  return element;
+  return null;
 }
 
 function isScrollableElement(element: HTMLElement): boolean {
@@ -391,6 +388,24 @@ function isScrollableElement(element: HTMLElement): boolean {
   }
   const style = getComputedStyle(element);
   return (style.overflowY === 'auto' || style.overflowY === 'scroll') && element.scrollHeight > element.clientHeight;
+}
+
+function resolveManualScrollTarget(element: HTMLElement): HTMLElement | null {
+  let candidate: HTMLElement | null = element;
+  while (candidate) {
+    if (isScrollableElement(candidate)) return candidate;
+    candidate = candidate.parentElement;
+  }
+  return null;
+}
+
+function resolveManualScrollDefaultTarget(): HTMLElement | null {
+  const pageTarget = resolveManualScrollTarget(
+    document.body ?? document.documentElement,
+  );
+  if (pageTarget) return pageTarget;
+  return Array.from(document.querySelectorAll<HTMLElement>('*'))
+    .find(isScrollableElement) ?? null;
 }
 
 function resolveScrollableParent(element: HTMLElement): HTMLElement | null {
@@ -686,6 +701,19 @@ function createPickerController(): (command: StartPickCommand) => Promise<void> 
           hiddenElements: customHiddenElements,
           hideFixedElements,
         });
+      } else if (mode === 'region') {
+        if (!target) throw new Error('未能识别区域截图的可滚动目标。');
+        result = target === document.documentElement || target === document.body
+          ? await capturePage({
+              ...options,
+              hiddenElements: customHiddenElements,
+              hideFixedElements,
+            })
+          : await captureElement(target, {
+              ...options,
+              hiddenElements: customHiddenElements,
+              hideFixedElements,
+            });
       } else if (mode === 'focus') {
         if (!target) throw new Error('未能识别聚焦截图目标。');
         restoreFocusStyles = applyFocusCaptureStyles(target);
@@ -787,12 +815,17 @@ function createPickerController(): (command: StartPickCommand) => Promise<void> 
       : elementLabel(currentElement);
   };
 
-  const updateCurrentTarget = (element: HTMLElement, mode: CaptureMode): void => {
-    currentElement = mode === 'region' || mode === 'custom'
-      ? resolveCaptureTarget(element)
-      : element;
+  const updateCurrentTarget = (element: HTMLElement, mode: CaptureMode): boolean => {
+    const resolvedTarget = mode === 'region'
+      ? resolveRegionCaptureTarget(element)
+      : mode === 'custom'
+        ? resolveManualScrollTarget(element)
+        : element;
+    if (!resolvedTarget) return false;
+    currentElement = resolvedTarget;
     if (ui) updatePickerUi(ui, currentElement);
     updateWorkflowTargetLabel();
+    return true;
   };
 
   const updateScrollableHighlights = (): void => {
@@ -1007,19 +1040,16 @@ function createPickerController(): (command: StartPickCommand) => Promise<void> 
     }
     const command = activeCommand;
     if (!command) return;
-    stopPicking();
-    if (command.mode === 'region') {
-      updateCurrentTarget(element, 'region');
-      showWorkflow(currentElement, 'region');
-      isPicking = false;
-    } else {
-      updateCurrentTarget(
-        element === document.body ? document.documentElement : element,
-        command.mode,
-      );
-      showWorkflow(currentElement, command.mode);
-      isPicking = false;
+    if (!updateCurrentTarget(element, command.mode)) {
+      if (ui) {
+        ui.highlight.style.display = 'none';
+        ui.label.style.display = 'none';
+      }
+      return;
     }
+    stopPicking();
+    showWorkflow(currentElement, command.mode);
+    isPicking = false;
   };
 
   const start = async (command: StartPickCommand): Promise<void> => {
@@ -1072,9 +1102,19 @@ function createPickerController(): (command: StartPickCommand) => Promise<void> 
       return;
     }
     if (normalizedCommand.mode === 'custom') {
-      currentElement = document.documentElement;
-      updatePickerUi(ui, currentElement);
+      const defaultTarget = resolveManualScrollDefaultTarget();
+      currentElement = defaultTarget ?? document.documentElement;
       showWorkflow(currentElement, 'custom');
+      if (!defaultTarget) {
+        ui.highlight.style.display = 'none';
+        ui.label.style.display = 'none';
+        workflow!.targetLabel.textContent = t(
+          'captureScrollablePrompt',
+          '请选择一个可滚动区域',
+        );
+        workflow!.captureButton.disabled = true;
+        workflow!.selectButton.textContent = t('selecting', '选择中');
+      }
       isPicking = true;
       window.addEventListener('pointermove', handlePointerMove, true);
       window.addEventListener('click', handleClick, true);

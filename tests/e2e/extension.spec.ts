@@ -194,7 +194,10 @@ test('popup resolves browser language to a concrete locale and shows project lin
     await expect(popup.locator('#language')).not.toHaveValue('browser');
     await expect(popup.locator('.brand-mark')).toHaveAttribute('src', /icon\/48\.png/);
     await expect(popup.locator('.brand-links a[title="GitHub 地址"]')).toHaveAttribute('href', 'https://github.com/SublimeCT/element-screenshot-extension');
-    await expect(popup.locator('.brand-links a').nth(1)).toHaveAttribute('href', /github\.com\/SublimeCT\/element-screenshot-extension#readme/);
+    await expect(popup.locator('.brand-links a').nth(1)).toHaveAttribute(
+      'href',
+      'https://sublimect.github.io/element-screenshot-extension',
+    );
   } finally {
     await popup.close();
   }
@@ -295,6 +298,38 @@ test('element capture keeps the clicked node and restores its scroll parent', as
   await expect(page.locator('#simple-target')).toHaveJSProperty('scrollTop', metrics.scrollTop);
 });
 
+test('element capture establishes its size after the scroll parent first reveals it', async ({
+  context,
+  extensionId,
+  page,
+}, testInfo) => {
+  await openWxtFixture(page, extensionId, 'test-simple');
+  const target = page.locator('#simple-target .row').first();
+  await startPicker(context, page, extensionId, 'element');
+  await target.click();
+  await expectWorkflow(page, 'div.row');
+  const expectedWidth = await target.evaluate((element) =>
+    Math.round(element.getBoundingClientRect().width * window.devicePixelRatio),
+  );
+  await page.locator('#simple-target').evaluate((element) => {
+    const parent = element as HTMLElement;
+    const row = parent.querySelector<HTMLElement>('.row')!;
+    parent.scrollTop = 96;
+    const resizeWhenCaptureStarts = (): void => {
+      if (parent.scrollTop > 1) return;
+      row.style.height = '72px';
+      parent.removeEventListener('scroll', resizeWhenCaptureStarts);
+    };
+    parent.addEventListener('scroll', resizeWhenCaptureStarts);
+  });
+
+  const png = await confirmDownload(page, testInfo);
+  expect(pngDimensions(png)).toEqual({ height: 72, width: expectedWidth });
+  await expect(page.locator('#element-shot-status-host[data-element-shot-status="error"]'))
+    .not.toBeAttached();
+  await expect(page.locator('#simple-target')).toHaveJSProperty('scrollTop', 96);
+});
+
 test('focus capture isolates the selected subtree with CSS and restores ancestors', async ({
   context,
   extensionId,
@@ -335,7 +370,7 @@ test('focus capture isolates the selected subtree with CSS and restores ancestor
 
 test('arrow keys move the selected target to its parent and first child', async ({ context, extensionId, page }) => {
   await openWxtFixture(page, extensionId, 'test-simple');
-  await startPicker(context, page, extensionId, 'region');
+  await startPicker(context, page, extensionId, 'element');
   await page.locator('#static-target').dispatchEvent('click');
   await expectWorkflow(page, 'article#static-target');
   await page.keyboard.press('ArrowUp');
@@ -385,8 +420,8 @@ test('region capture waits for confirmation and captures exactly one selected re
   const onDownload = (): void => { downloadCount += 1; };
   page.on('download', onDownload);
   await page.locator('#static-target').click({ position: { x: 285, y: 105 } });
-  await expectWorkflow(page, 'article#static-target');
-  await expectHighlightMatches(page, '#static-target');
+  await expectWorkflow(page, '整页');
+  await expectHighlightMatches(page, 'html');
   await page.waitForTimeout(250);
   expect(downloadCount).toBe(0);
   page.off('download', onDownload);
@@ -402,6 +437,36 @@ test('region capture waits for confirmation and captures exactly one selected re
   const png = await confirmDownload(page, testInfo);
   expect(pngDimensions(png)).toEqual(expected);
   await expect(page.locator('#element-shot-workflow-host')).not.toBeAttached();
+});
+
+test('region capture keeps a deterministic size without failing on later geometry reads', async ({
+  context,
+  extensionId,
+  page,
+}, testInfo) => {
+  await openWxtFixture(page, extensionId, 'test-simple');
+  const target = page.locator('#simple-target');
+  await startPicker(context, page, extensionId, 'region');
+  await target.click({ position: { x: 2, y: 2 } });
+  await expectWorkflow(page, 'section#simple-target');
+  const expected = await target.evaluate((element) => {
+    const scrollable = element as HTMLElement;
+    scrollable.style.transformOrigin = 'top left';
+    scrollable.addEventListener('scroll', () => {
+      scrollable.style.transform = scrollable.scrollTop <= 1
+        ? 'scale(0.8)'
+        : 'scale(0.9)';
+    });
+    return {
+      height: Math.round(scrollable.scrollHeight * 0.9 * window.devicePixelRatio),
+      width: Math.round(scrollable.clientWidth * 0.9 * window.devicePixelRatio),
+    };
+  });
+
+  const png = await confirmDownload(page, testInfo);
+  expect(pngDimensions(png)).toEqual(expected);
+  await expect(page.locator('#element-shot-status-host[data-element-shot-status="error"]'))
+    .not.toBeAttached();
 });
 
 test('full-page capture captures the selected root target and restores window scroll', async ({
@@ -485,7 +550,7 @@ test('captures a tall non-scroll container by scrolling the page around it', asy
       width: Math.round(rect.width * window.devicePixelRatio),
     };
   });
-  await startPicker(context, page, extensionId, 'region');
+  await startPicker(context, page, extensionId, 'element');
   await page.locator('#tall-static-target').click({ position: { x: 310, y: 1150 } });
   await expectWorkflow(page, 'article#tall-static-target');
   const originalScrollY = await page.evaluate(() => window.scrollY);
@@ -505,23 +570,26 @@ test('manual capture edits directly, previews hidden elements, and restores both
   page,
 }, testInfo) => {
   await openWxtFixture(page, extensionId, 'test-simple');
-  const target = page.locator('#static-target');
-  const originalHtml = await page.locator('#static-target').evaluate((element) => element.innerHTML);
+  const target = page.locator('#simple-target');
+  const originalHtml = await target.evaluate((element) => element.innerHTML);
   const originalHiddenStyle = await page.locator('#fixed-obstruction').getAttribute('style');
   await startPicker(context, page, extensionId, 'custom');
   await expectWorkflow(page, '整页');
   await page.locator('#static-target').click({ position: { x: 285, y: 105 } });
-  await expectWorkflow(page, 'article#static-target');
+  await expectWorkflow(page, '整页');
+  await clickWorkflow(page, '[data-select]');
+  await page.locator('#simple-target .row').first().click();
+  await expectWorkflow(page, 'section#simple-target');
 
   await clickWorkflow(page, '[data-edit]');
   await expect(page.locator('#element-shot-editor-host')).not.toBeAttached();
-  await expect(page.locator('#static-target')).toHaveAttribute('contenteditable', 'true');
-  await page.locator('#static-target').fill('Edited content');
+  await expect(target).toHaveAttribute('contenteditable', 'true');
+  await target.fill('Edited content');
   await clickWorkflow(page, '[data-hide]');
-  await expectWorkflow(page, 'article#static-target');
+  await expectWorkflow(page, 'section#simple-target');
   await page.locator('#fixed-obstruction').click();
   await expect(page.locator('#element-shot-workflow-host')).toContainText('完成选择 (1)');
-  await expect(page.locator('#static-target')).toContainText('Edited content');
+  await expect(target).toContainText('Edited content');
   await expect(page.locator('#fixed-obstruction')).toHaveCSS('opacity', '0.35');
   await expect(page.locator('#fixed-obstruction')).toHaveCSS('visibility', 'visible');
   await clickWorkflow(page, '[data-hide]');
@@ -533,17 +601,47 @@ test('manual capture edits directly, previews hidden elements, and restores both
   await expect(target).toHaveCSS('outline-offset', '3px');
   await expect(page.locator('style[data-element-shot-scrollbars="true"]')).toBeAttached();
   await expect(page.locator('#fixed-obstruction')).toHaveCSS('visibility', 'visible');
-  await expect(page.locator('#fixed-obstruction')).toHaveCSS('opacity', '0.35');
+  await expect(page.locator('#fixed-obstruction')).toHaveCSS('opacity', '0');
   await page.mouse.move(1000, 400);
   await page.mouse.down();
   await page.mouse.up();
   const png = await saveDownload(await downloadPromise, testInfo);
   expect(pngDimensions(png).width).toBeGreaterThan(100);
-  await expect(page.locator('#static-target')).toHaveJSProperty('innerHTML', originalHtml);
-  await expect(page.locator('#static-target')).not.toHaveAttribute('contenteditable', 'true');
+  await expect(target).toHaveJSProperty('innerHTML', originalHtml);
+  await expect(target).not.toHaveAttribute('contenteditable', 'true');
   await expect(page.locator('#fixed-obstruction')).toHaveCSS('visibility', 'visible');
   expect(await page.locator('#fixed-obstruction').getAttribute('style')).toBe(originalHiddenStyle);
   await expect(page.locator('#element-shot-editor-host')).not.toBeAttached();
+});
+
+test('manual mode never accepts a target when no scrollable ancestor exists', async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  await openWxtFixture(page, extensionId, 'test-simple');
+  await page.evaluate(() => {
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    for (const selector of ['#simple-target', '#secondary-scroll-target']) {
+      const element = document.querySelector<HTMLElement>(selector);
+      if (element) element.style.overflow = 'hidden';
+    }
+  });
+
+  await startPicker(context, page, extensionId, 'custom');
+  await expectWorkflow(page, '请选择一个可滚动区域');
+  const workflow = page.locator('#element-shot-workflow-host');
+  await expect(workflow.locator('[data-capture]')).toBeDisabled();
+  await page.locator('#static-target').click();
+  await expect(workflow).toContainText('请选择一个可滚动区域');
+  await expect(workflow.locator('[data-capture]')).toBeDisabled();
+  await expect.poll(() => page.evaluate(() => {
+    const host = document.querySelector<HTMLElement>('#element-shot-picker-host');
+    const highlight = host?.shadowRoot?.querySelector<HTMLElement>('.highlight');
+    return highlight?.style.display;
+  })).toBe('none');
+  await page.keyboard.press('Escape');
 });
 
 test('manual scroll capture stitches initial and settled positions by actual distance', async ({
@@ -588,6 +686,57 @@ test('manual scroll capture stitches initial and settled positions by actual dis
     .toBe(initialScrollTop);
   await expect(target).toHaveCSS('outline-style', 'none');
   await expect(page.locator('style[data-element-shot-scrollbars="true"]')).not.toBeAttached();
+});
+
+test('manual scroll capture uses the visible intersection of a partially clipped target', async ({
+  context,
+  extensionId,
+  page,
+}, testInfo) => {
+  await openWxtFixture(page, extensionId, 'test-simple');
+  const target = page.locator('#simple-target');
+  await target.evaluate((element) => {
+    const scrollable = element as HTMLElement;
+    const documentTop = scrollable.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo(0, documentTop + 40);
+  });
+  await startPicker(context, page, extensionId, 'custom');
+  await target.evaluate((element) => (element as HTMLElement).click());
+  await expectWorkflow(page, 'section#simple-target');
+  const initialScrollTop = await target.evaluate((element) =>
+    (element as HTMLElement).scrollTop,
+  );
+
+  const downloadPromise = captureDownload(page);
+  await clickWorkflow(page, '[data-capture]');
+  const captureArea = await target.evaluate((element) => {
+    const scrollable = element as HTMLElement;
+    const rect = scrollable.getBoundingClientRect();
+    const top = Math.max(0, rect.top + scrollable.clientTop);
+    const bottom = Math.min(
+      window.innerHeight,
+      rect.top + scrollable.clientTop + scrollable.clientHeight,
+    );
+    return {
+      height: Math.round((bottom - top) * window.devicePixelRatio),
+      width: Math.round(scrollable.clientWidth * window.devicePixelRatio),
+    };
+  });
+  expect(captureArea.height).toBeLessThan(240);
+  await page.waitForTimeout(700);
+  await target.evaluate((element) => { (element as HTMLElement).scrollTop = 96; });
+  await expect.poll(() => target.evaluate((element) => (element as HTMLElement).scrollTop))
+    .toBe(96);
+  await page.waitForTimeout(750);
+  await page.keyboard.press('KeyQ');
+
+  const png = await saveDownload(await downloadPromise, testInfo);
+  expect(pngDimensions(png)).toEqual({
+    height: captureArea.height + 96 - initialScrollTop,
+    width: captureArea.width,
+  });
+  await expect(page.locator('#element-shot-status-host[data-element-shot-status="error"]'))
+    .not.toBeAttached();
 });
 
 test('manual scroll capture finishes automatically at the target bottom', async ({
@@ -688,16 +837,49 @@ test('preview opens a real rendered PNG tab', async ({ context, extensionId, pag
   await preview?.close();
 });
 
-test('captures a static region without runtime errors', async ({ context, extensionId, page }, testInfo) => {
+test('region capture resolves a static element to its first scrollable ancestor', async ({
+  context,
+  extensionId,
+  page,
+}, testInfo) => {
   await openWxtFixture(page, extensionId, 'test-simple');
   await startPicker(context, page, extensionId, 'region');
   await page.locator('#static-target').click({ position: { x: 285, y: 105 } });
-  await expectWorkflow(page, 'article#static-target');
+  await expectWorkflow(page, '整页');
+  await expectHighlightMatches(page, 'html');
   const png = await confirmDownload(page, testInfo);
   const dimensions = pngDimensions(png);
-  expect(Math.abs(dimensions.width - 300)).toBeLessThanOrEqual(1);
-  expect(dimensions.height).toBeGreaterThan(80);
+  expect(dimensions.width).toBeGreaterThanOrEqual(1100);
+  expect(dimensions.height).toBeGreaterThan(1000);
   await expect(page.locator('#element-shot-status-host[data-element-shot-status="error"]')).not.toBeAttached();
+});
+
+test('region mode rejects a static element when it has no scrollable ancestor', async ({
+  context,
+  extensionId,
+  page,
+}) => {
+  await openWxtFixture(page, extensionId, 'test-simple');
+  await page.evaluate(() => {
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    for (const selector of ['#simple-target', '#secondary-scroll-target']) {
+      const element = document.querySelector<HTMLElement>(selector);
+      if (element) element.style.overflow = 'hidden';
+    }
+  });
+
+  await startPicker(context, page, extensionId, 'region');
+  const workflow = page.locator('#element-shot-workflow-host');
+  await page.locator('#static-target').click();
+  await expect(workflow).toContainText('请选择一个截图区域');
+  await expect(workflow.locator('[data-capture]')).toBeDisabled();
+  await expect.poll(() => page.evaluate(() => {
+    const host = document.querySelector<HTMLElement>('#element-shot-picker-host');
+    const highlight = host?.shadowRoot?.querySelector<HTMLElement>('.highlight');
+    return highlight?.style.display;
+  })).toBe('none');
+  await page.keyboard.press('Escape');
 });
 
 test('handles transformed nested ancestors', async ({ context, extensionId, page }, testInfo) => {
@@ -742,7 +924,7 @@ test('restores hidden preview and visibility when capture fails', async ({ conte
   await openWxtFixture(page, extensionId, 'test-simple');
   const hiddenTarget = page.locator('#fixed-obstruction');
   const originalStyle = await hiddenTarget.getAttribute('style');
-  await startPicker(context, page, extensionId, 'region');
+  await startPicker(context, page, extensionId, 'element');
   await page.locator('#static-target').click({ position: { x: 285, y: 105 } });
   await clickWorkflow(page, '[data-hide]');
   await hiddenTarget.click();
