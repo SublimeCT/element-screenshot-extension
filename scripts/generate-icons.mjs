@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { deflateSync } from 'node:zlib';
 
-const outputDirectory = process.argv[2] ?? 'public/icon';
+const outputDirectory = process.argv[2] ?? 'extension-public/icon';
 const sizes = [16, 32, 48, 96, 128];
 
 function crc32(bytes) {
@@ -219,13 +219,10 @@ if (command === 'favicons') {
   await writeFile(`${outDir}/apple-touch-icon.png`, encodePng(touchSize, touchPixels));
   console.log(`  ✓ ${outDir}/apple-touch-icon.png (180×180)`);
 
-  // Standalone 32×32 favicon PNG
-  await writeFile(`${outDir}/favicon-32x32.png`, png(32));
-  console.log(`  ✓ ${outDir}/favicon-32x32.png (32×32)`);
   console.log('Done — favicons generated.');
 } else {
   // Default: extension toolbar icons
-  const outputDirectory = command ?? 'public/icon';
+  const outputDirectory = command ?? 'extension-public/icon';
   const sizes = [16, 32, 48, 96, 128];
   await mkdir(outputDirectory, { recursive: true });
   for (const size of sizes) {

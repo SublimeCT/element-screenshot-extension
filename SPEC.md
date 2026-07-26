@@ -101,10 +101,17 @@ element-shot/
 │   ├── zip.ts                # 本地 ZIP(仅存储模式)生成
 │   ├── stitch.ts              # OffscreenCanvas 拼接逻辑
 │   └── types.ts               # 消息 payload、裁剪框等共享类型定义
-├── public/
-│   ├── icon-16.png
-│   ├── icon-48.png
-│   └── icon-128.png
+├── extension-public/         # 仅复制进扩展包的静态运行时资源
+│   ├── _locales/
+│   ├── icon/
+│   │   ├── 16.png
+│   │   ├── 48.png
+│   │   └── 128.png
+│   ├── preview.html
+│   └── preview.js
+├── public/                   # GitHub Pages 营销站点；不进入扩展构建
+│   ├── landing/
+│   └── index.html
 ├── wxt.config.ts              # manifest 字段(name/permissions/description 等)统一在此声明
 ├── package.json
 ├── tsconfig.json
@@ -112,7 +119,7 @@ element-shot/
 └── .gitignore                  # 需排除 WXT 构建产物目录 dist/、.wxt/
 ```
 
-> 说明:本项目在 `wxt.config.ts` 中将 WXT 的 `outDir` 配置为 `dist/`(打包后的可加载扩展 + 提交商店用的 zip 均在此目录下生成),开发调试临时文件在 `.wxt/`,两者都不进 Git。
+> 说明:本项目在 `wxt.config.ts` 中将 WXT 的 `outDir` 配置为 `dist/`，并将 WXT 的 `publicDir` 配置为 `extension-public/`；只有该目录的静态运行时资源会复制到可加载扩展和商店 ZIP 中。`_locales/` 和扩展图标只在 `extension-public/` 保留一份源文件；GitHub Pages 工作流仅在其临时发布目录中引用这些文件，仓库中不得复制第二份。仓库根目录 `public/` 专供营销页面 HTML/CSS/演示资源，不得用构建后删除文件的方式将其从扩展产物中剔除，否则 WXT 的构建统计会保留旧文件清单并产生 `ENOENT` 警告。开发调试临时文件在 `.wxt/`，两者都不进 Git。
 > 测试页遵循 WXT unlisted page 入口约定,由 `entrypoints:found` hook 仅保留在 `development` / `e2e` 模式;生产包不得包含 `test-simple.html` 或 `test-complex.html`。
 
 ### 4.3 各模块职责

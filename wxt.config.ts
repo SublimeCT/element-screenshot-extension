@@ -3,6 +3,10 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   manifestVersion: 3,
   outDir: 'dist',
+  // WXT copies every file from publicDir verbatim into the extension. Keep the
+  // extension's runtime assets separate from public/, which is deployed as the
+  // marketing site and must never be considered part of the extension build.
+  publicDir: 'extension-public',
   hooks: {
     'entrypoints:found': (wxt, entrypoints) => {
       if (wxt.config.mode === 'development' || wxt.config.mode === 'e2e') {

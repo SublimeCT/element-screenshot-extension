@@ -12,7 +12,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { deflateSync } from 'node:zlib';
 
-const OUTPUT_PATH = process.argv[2] ?? 'public/icon/chrome-web-store-128.png';
+const OUTPUT_PATH = process.argv[2] ?? 'store-assets/chrome-web-store-128.png';
 const SIZE = 128;
 const SCALE = 4;
 const RENDER_SIZE = SIZE * SCALE;

@@ -84,7 +84,6 @@ const LANG_OPTIONS = `
 
 function faviconHead() {
   return `
-  <link rel="icon" type="image/svg+xml" href="../icon/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="../icon/32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="../icon/48.png">
   <link rel="icon" type="image/png" sizes="16x16" href="../icon/16.png">

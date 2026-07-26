@@ -5,8 +5,8 @@ on:
     branches: [main]
     paths:
       - 'public/landing/**'
-      - 'public/_locales/**'
-      - 'public/icon/**'
+      - 'extension-public/_locales/**'
+      - 'extension-public/icon/**'
       - 'public/index.html'
       - '.github/workflows/deploy-landing.yml'
   workflow_dispatch:
@@ -27,10 +27,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Keep runtime assets in one source directory. The Pages artifact is a
+      # temporary deployment tree, so it can expose the landing's relative
+      # /_locales and /icon URLs without duplicating those files in the repo.
+      - name: Prepare Pages artifact
+        run: |
+          cp -R public site
+          cp -R extension-public/_locales site/_locales
+          mkdir -p site/icon
+          cp extension-public/icon/*.png site/icon/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: public
+          path: site
 
   deploy:
     needs: build

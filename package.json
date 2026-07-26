@@ -14,7 +14,7 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
-    "generate:icons": "node scripts/generate-icons.mjs public/icon",
+    "generate:icons": "node scripts/generate-icons.mjs extension-public/icon",
     "generate:favicons": "node scripts/generate-icons.mjs favicons public/landing",
     "record": "node scripts/record-modes.mjs",
     "clean": "node scripts/clean.mjs",

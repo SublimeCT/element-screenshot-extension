@@ -1,7 +1,7 @@
 // Add the per-mode demo i18n keys to every locale's messages.json.
 //
 // This script is the single source of truth for the new keys' translations.
-// It merges them into public/_locales/<locale>/messages.json, preserving the
+// It merges them into extension-public/_locales/<locale>/messages.json, preserving the
 // existing entries and the existing one-line-per-entry formatting:
 //   "key": { "message": "value" },
 //
@@ -11,7 +11,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const ROOT = path.resolve('.');
-const LOCALES_DIR = path.join(ROOT, 'public/_locales');
+const LOCALES_DIR = path.join(ROOT, 'extension-public/_locales');
 
 // Each locale maps the new keys to their translated message.
 const STRINGS = {
